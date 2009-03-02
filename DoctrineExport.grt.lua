@@ -161,7 +161,7 @@ end
 --
 -- Print some version information and copyright to the output window
 function printVersion()
-	print("\n\n\nThis is DoctrineExport v. 0.1alpha8\nCopyright (c) 2008, 2009 Johannes Mueller - License: LGPLv3");
+	print("\n\n\nThis is DoctrineExport v. 0.1alpha9\nCopyright (c) 2008, 2009 Johannes Mueller - License: LGPLv3");
 end
 
 --
