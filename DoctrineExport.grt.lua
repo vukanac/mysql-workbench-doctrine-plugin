@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.2
+-- Version: 0.3
 -- Authors: Johannes Müller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -24,7 +24,7 @@
 --
 ---------------------------------------------------------------------------------------------
 --
--- special thanks to:
+-- Special thanks to:
 --    Daniel Haas who develops the MySQL Workbench Propel export plugin
 --    and kindly agreed to adopt pieces of his source
 --    http://www.diloc.de/blog/
@@ -33,12 +33,12 @@
 --
 -- * IMPORTANT:
 -- * If you find BUGS in this plugin or have ideas for IMPROVEMENTS or PATCHES, don't hesitate
--- * to contact me at http://code.google.com/p/mysql-workbench-doctrine-plugin/
+-- * to contact us at http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
 -- INSTALLATION:
 -- Just copy this file into the \modules folder of your
---  a. Workbench 5.0.x installation or
---  b. Workbench 5.1.x local user application data location
+--  a. up until Workbench version 5.0.x installation directory or
+--  b. starting with Workbench 5.1.x local user MySQL appdata directory
 --
 -- USAGE:
 -- 1. Open MySQL Workbench
@@ -50,15 +50,26 @@
 --        file as specified in the dialog
 --
 -- NOTES:
--- 1. The YAML file extension usually is .yml
+-- 1. The YAML file extension usually is ".yml"
 -- 2. The plugin locations from MySQL Workbench changed from version 5.0.x to 5.1.x.
 -- 3. On Windows XP the Workbench:copyToClipboard function seems to have a defect in version
---    5.1.9 and 5.1.10 (other versions untested): http://bugs.mysql.com/bug.php?id=44461
+--    5.1.9 up to 5.2.1alpha (other versions untested): http://bugs.mysql.com/bug.php?id=44461
 -- 4. To change the schema character set and collation in Workbench 5.1.x you have to go to tab
 --    "MySQL Model" -> "Physical Schemata", then double click that yellow DB image with the
 --    schema name next to it.
 -- 
 -- CHANGELOG:
+-- 0.3 (Karsten Wutzke)
+--    + [fix] types BOOLEAN, BOOL, and INTEGER now working (aren't simpleType)
+--    + [add] lowercasing for default TRUE and FALSE keywords
+--    + [imp] default NULL, TRUE, and FALSE detected case-insensitively now (WB doesn't
+--            uppercase default values as opposed to all data types - which are keywords, too)
+--    + [add] added version info to module ID and menu items, like this plugins with different
+--            versions can be used at the same time (starting with this version and one old)
+--    + [imp] file export: added simple functionality to append ".yml" extension to file paths
+--            not ending with ".yml"
+--    + [imp] removed some unnecessary prints
+--    + [imp] shortened changelog entry types [improvement] to [imp] and [other] to [oth]
 -- 0.2 (Karsten Wutzke)
 --    + [add] foreignAlias for relations
 --    + [fix] exception thrown in relationBuilding on some tables with foreign keys where the
@@ -81,13 +92,13 @@
 --         BOOL      -> boolean
 --         CHAR      -> string + fixed option
 --    + [add] option for CHAR columns
---    + [improvement] removed using the table name capitalization function (ucfirst) from
+--    + [imp] removed using the table name capitalization function (ucfirst) from
 --      function buildTableName(), like this tables retain their original names and the
 --      default Workbench naming convention "_has_" still gets handled correctly
---    + [improvement] replaced "\r\n" line endings with "\n" only
---    + [improvement] using lowercase for default null values
---    + [improvement] restructured MySQL plugin init code for easier understanding
---    + [improvement] changed the file name to "DoctrineExport-<major>.<minor>.grt.lua"
+--    + [imp] replaced "\r\n" line endings with "\n" only
+--    + [imp] using lowercase for default null values
+--    + [imp] restructured MySQL plugin init code for easier understanding
+--    + [imp] changed the file name to "DoctrineExport-<major>.<minor>.grt.lua"
 -- 0.1alpha9
 --    + [add] function to save to file
 --    + [add] print version name on execution in debug window
@@ -95,7 +106,7 @@
 --    + [fix] changed behavior of table renaming (thanks to Francisco Ernesto Teixeira)
 --      taBleNaMe -> Tablename ->[fix]-> TaBleNaMe
 -- 0.1alpha7
---    + [other] changed the license from GPLv2 to LGPLv3
+--    + [oth] changed the license from GPLv2 to LGPLv3
 --    + [fix] removed plural correction of table names (deprecated in Doctrine 1.0)
 -- 0.1alpha6
 --    + [fix] some conversion from workbench type to Doctrine type
@@ -142,19 +153,20 @@ function getModuleInfo()
 	-- module properties
 	local props =
 		{
-			-- module name
+			-- module name (ID)
 			name = "DoctrineExport",
 			
 			-- module author(s)
 			author = "various",
 			
 			--module version
-			version = "0.2",
+			version = "0.3",
 			
 			-- interface implemented by this module
 			implements = "PluginInterface",
 			
-			-- plugin functions exposed by this module?????
+			-- plugin functions exposed by this module
+			-- l looks like a parameterized list, i instance, o object, @ fully qualified class name
 			functions =
 				{
 					"getPluginInfo:l<o@app.Plugin>:",
@@ -162,6 +174,9 @@ function getModuleInfo()
 					"exportYamlSchemaToFile:i:o@db.Catalog"
 				}
 		}
+	
+	-- can't assign inside declaration
+	props.name = props.name .. props.version
 	
 	return props
 end
@@ -179,11 +194,13 @@ function getPluginInfo()
 	
 	-- plugin instances
 	local plugin
-
+	
+	local props = getModuleInfo()
+	
 	-- new plugin: export to clipboard
-	plugin = createNewPlugin("wb.catalog.util.exportYamlSchemaToClipboard",
-							 "Doctrine Export: Copy Generated Doctrine Schema to Clipboard",
-							 "DoctrineExport",
+	plugin = createNewPlugin("wb.catalog.util.exportYamlSchemaToClipboard" .. props.version,
+							 "Doctrine Export " .. props.version .. ": Copy Generated Doctrine Schema to Clipboard",
+							 props.name,
 							 "exportYamlSchemaToClipboard",
 							 {objectPluginInput("db.Catalog")},
 							 {"Catalog/Utilities", "Menu/Catalog"})
@@ -192,9 +209,9 @@ function getPluginInfo()
 	grtV.insert(l, plugin)
 
 	-- new plugin: export to file
-	plugin = createNewPlugin("wb.catalog.util.exportYamlSchemaToFile",
-							 "Doctrine Export: Write Generated Doctrine Schema to File...",
-							 "DoctrineExport",
+	plugin = createNewPlugin("wb.catalog.util.exportYamlSchemaToFile" .. props.version,
+							 "Doctrine Export " .. props.version .. ": Write Generated Doctrine Schema to File...",
+							 props.name,
 							 "exportYamlSchemaToFile",
 							 {objectPluginInput("db.Catalog")},
 							 {"Catalog/Utilities", "Menu/Catalog"})
@@ -236,17 +253,24 @@ end
 --
 -- Print some version information and copyright to the output window
 function printVersion()
-	print("\n\n\nDoctrineExport v0.2\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
+	print("\n\n\nDoctrineExport v0.3\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
 end
 
 --
 -- Convert workbench simple types to doctrine types
 function wbSimpleType2DoctrineDatatype(column)
 	
+	--print("\n")
+	--print(column)
+	
+	local doctrineType
+	
+	-- boolean, bool, and integer don't seem to be simple types, but rather user types...
 	if ( column.simpleType ~= nil ) then
-		local doctrineType = column.simpleType.name
+	
+		doctrineType = column.simpleType.name
 		
-		-- BLOB?
+		--print("\n" .. column.name .. " type = " .. column.simpleType.name)
 		
 		-- convert VARCHAR and CHAR to string
 		if ( column.simpleType.name == "VARCHAR" or column.simpleType.name == "CHAR" ) then
@@ -268,9 +292,8 @@ function wbSimpleType2DoctrineDatatype(column)
 			doctrineType = "integer(3)"
 		end
 		
-		-- convert INTEGER and INT to integer
-		if ( column.simpleType.name == "INTEGER" or column.simpleType.name == "INT" ) then
-			doctrineType = "integer" -- "integer(4)"?
+		if ( column.simpleType.name == "INT" ) then
+			doctrineType = "int"
 		end
 		
 		-- convert BIGINT to integer(8)
@@ -278,13 +301,8 @@ function wbSimpleType2DoctrineDatatype(column)
 			doctrineType = "integer(8)"
 		end
 		
-		-- convert BOOLEAN and BOOL to boolean
-		if ( column.simpleType.name == "BOOLEAN" or column.simpleType.name == "BOOL" ) then
-			doctrineType = "boolean"
-		end
-		
 		-- decimal
-		if( column.simpleType.name == "DECIMAL" ) then
+		if ( column.simpleType.name == "DECIMAL" ) then
 			doctrineType = "decimal"
 			if ( column.precision ~= nil ) then
 				doctrineType = doctrineType .. "(" .. column.precision .. "," .. column.scale .. ")"
@@ -293,15 +311,34 @@ function wbSimpleType2DoctrineDatatype(column)
 		
 		-- text
 		if( column.simpleType.name == "TEXT" ) then
-		  doctrineType = "clob"
+			doctrineType = "clob"
 		end
 		
-		-- convert DATETIME to TIMESTAMP
+		-- convert DATETIME to TIMESTAMP (DATETIME is not ISO/IEC standard SQL)
 		if ( column.simpleType.name == "DATETIME" ) then
 			doctrineType = "timestamp"
 		end
 		
 		return string.lower(doctrineType)
+		
+	elseif ( column.userType ~= nil ) then
+		
+		--print("\n" .. column.name .. " type = " .. column.userType.name)
+		
+		if ( column.userType.name == "INTEGER" ) then
+			doctrineType = "integer"
+		end
+		
+		-- convert BOOLEAN and BOOL to boolean
+		if ( column.userType.name == "BOOLEAN" or column.userType.name == "BOOL" ) then
+			doctrineType = "boolean"
+		end
+		
+		return string.lower(doctrineType)
+		
+	elseif ( column.structuredType ~= nil ) then
+		--print("\n" .. column.name .. " type = " .. column.structuredType.name)
+		return "structuredType (not implemented yet)"
 	else
 		return "unknown"
 	end
@@ -561,9 +598,9 @@ function generateYamlSchema(cat)
 			yaml = yaml .. buildTableName(tbl.name) .. ":\n"
 			
 			-- test singularize and pluralize functions
-			print("\n" .. singularizeTableName(tbl.name))
-			print(" <-> ")
-			print(pluralizeTableName(tbl.name))
+			--print("\n" .. singularizeTableName(tbl.name))
+			--print(" <-> ")
+			--print(pluralizeTableName(tbl.name))
 			
 			-- check if table ends with _ns means
 			-- NestedSet Model
@@ -576,11 +613,12 @@ function generateYamlSchema(cat)
 			yaml = yaml .. "  columns:\n"
 			for k = 1, grtV.getn(tbl.columns) do
 				col = tbl.columns[k]
+				doctrineType = wbSimpleType2DoctrineDatatype(col)
 				--
 				-- start of adding a column
 				yaml = yaml.."    "..renameIdColumns(col.name)..":\n"
-				yaml = yaml.."      type: " .. wbSimpleType2DoctrineDatatype(col)
-				if( wbSimpleType2DoctrineDatatype(col) == "enum" ) then
+				yaml = yaml.."      type: " .. doctrineType
+				if( doctrineType == "enum" ) then
 					-- enum handling
 					yaml = yaml.."\n"
 					yaml = yaml.."      values: ["
@@ -640,10 +678,16 @@ function generateYamlSchema(cat)
 				end
 				--
 				-- checking for default value of a column
-				if ( col.defaultValue ~= '' and col.defaultValue ~= 'CURRENT_TIMESTAMP' ) then
+				if ( col.defaultValue ~= '' and string.upper(col.defaultValue) ~= 'CURRENT_TIMESTAMP' ) then
 					yaml = yaml .. "      default: "
-					-- if null then lowercase
-					if ( col.defaultValue == "NULL" ) then
+					
+					-- Lua has no switch...
+					-- switch ( string.upper(col.defaultValue) )
+					
+					-- if null, true, or false then lowercase
+					if (    string.upper(col.defaultValue) == "NULL" 
+						 or string.upper(col.defaultValue) == "TRUE"
+						 or string.upper(col.defaultValue) == "FALSE" ) then
 						yaml = yaml .. string.lower(col.defaultValue)
 					else
 						yaml = yaml .. col.defaultValue
@@ -724,7 +768,7 @@ function generateYamlSchema(cat)
 		end
 	end
 	
-	print(yaml)
+	--print(yaml)
 	
 	return yaml
 end
@@ -749,25 +793,38 @@ function exportYamlSchemaToFile(catalog)
 
 	printVersion()
 	local yaml = generateYamlSchema(catalog)
+	local file = catalog.customData["doctrineExportPath"]
 	
-	--print("\nFilepath is: "..catalog.customData["doctrineExportPath"])
+	--print("\nFilepath is: " .. file)
 	
-	if ( catalog.customData["doctrineExportPath"] ~= nil and
-		 Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. catalog.customData["doctrineExportPath"] .. "?") == 1 ) then
+	if ( file ~= nil and
+		 Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
 		
 		-- global
-		doctrineExportPath = catalog.customData["doctrineExportPath"]
+		doctrineExportPath = file
 	
 	else
 		doctrineExportPath = Workbench:input("Please enter a path to the file to export the doctrine schema to.")
 			
 		if ( doctrineExportPath ~= "" ) then
 			-- Try to save the filepath for the next time:
+			
+			-- if file path doesn't end with .yml, append that
+			if ( not string.endswith(doctrineExportPath, ".yml") ) then
+			
+				if ( string.endswith(doctrineExportPath, ".") ) then
+					doctrineExportPath = doctrineExportPath .. "yml"
+				else
+					doctrineExportPath = doctrineExportPath .. ".yml"
+				end
+			end
+		
 			catalog.customData["doctrineExportPath"] = doctrineExportPath
 		end
 	end
   
-	if doctrineExportPath ~= '' then
+	if ( doctrineExportPath ~= '' ) then
+		
 		f = io.open(doctrineExportPath, "w")
 	
 		if ( f ~= nil ) then
