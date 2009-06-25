@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3
+-- Version: 0.3.1
 -- Authors: Johannes Müller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,9 @@
 --    schema name next to it.
 -- 
 -- CHANGELOG:
+-- 0.3.1 (JM)
+--    + [fix] changed simple type "INT" to doctrine "integer"
+--            (see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=6)
 -- 0.3 (Karsten Wutzke)
 --    + [fix] types BOOLEAN, BOOL, and INTEGER now working (aren't simpleType)
 --    + [add] lowercasing for default TRUE and FALSE keywords
@@ -74,9 +77,9 @@
 --    + [add] foreignAlias for relations
 --    + [fix] exception thrown in relationBuilding on some tables with foreign keys where the
 --      column and referenced columns list has zero length
---    + [improvement] replaced all string.len() calls with the length operator #s
+--    + [imp] replaced all string.len() calls with the length operator #s
 --    + [add] function string.endswith()
---    + [improvement] eased the code of function exportYamlSchemaToFile (eliminated double if)
+--    + [imp] eased the code of function exportYamlSchemaToFile (eliminated double if)
 --    + [add] functions to test if a (table) name is plural or singular
 --    + [fix] reanimated functionality for (English) plural table names
 --    + [add] functionality to adjust special (English) table names ending with "ies" to
@@ -160,7 +163,7 @@ function getModuleInfo()
 			author = "various",
 			
 			--module version
-			version = "0.3",
+			version = "0.3.1",
 			
 			-- interface implemented by this module
 			implements = "PluginInterface",
@@ -253,7 +256,7 @@ end
 --
 -- Print some version information and copyright to the output window
 function printVersion()
-	print("\n\n\nDoctrineExport v0.3\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
+	print("\n\n\nDoctrineExport v0.3.1\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
 end
 
 --
@@ -293,7 +296,7 @@ function wbSimpleType2DoctrineDatatype(column)
 		end
 		
 		if ( column.simpleType.name == "INT" ) then
-			doctrineType = "int"
+			doctrineType = "integer"
 		end
 		
 		-- convert BIGINT to integer(8)
