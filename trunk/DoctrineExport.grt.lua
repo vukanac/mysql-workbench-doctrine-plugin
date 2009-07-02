@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.1
+-- Version: 0.3.2
 -- Authors: Johannes Müller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,13 +59,15 @@
 --    schema name next to it.
 -- 
 -- CHANGELOG:
+-- 0.3.2 (Karsten Wutzke)
+--    + [oth] small change in handling version information
 -- 0.3.1 (JM)
 --    + [fix] changed simple type "INT" to doctrine "integer"
 --            (see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=6)
 -- 0.3 (Karsten Wutzke)
---    + [fix] types BOOLEAN, BOOL, and INTEGER now working (aren't simpleType)
+--    + [fix] types BOOLEAN, BOOL, and INTEGER now working (are no simpleTypes)
 --    + [add] lowercasing for default TRUE and FALSE keywords
---    + [imp] default NULL, TRUE, and FALSE detected case-insensitively now (WB doesn't
+--    + [imp] default NULL, TRUE, and FALSE detected case-insensitively now (WB does not
 --            uppercase default values as opposed to all data types - which are keywords, too)
 --    + [add] added version info to module ID and menu items, like this plugins with different
 --            versions can be used at the same time (starting with this version and one old)
@@ -101,7 +103,6 @@
 --    + [imp] replaced "\r\n" line endings with "\n" only
 --    + [imp] using lowercase for default null values
 --    + [imp] restructured MySQL plugin init code for easier understanding
---    + [imp] changed the file name to "DoctrineExport-<major>.<minor>.grt.lua"
 -- 0.1alpha9
 --    + [add] function to save to file
 --    + [add] print version name on execution in debug window
@@ -163,7 +164,7 @@ function getModuleInfo()
 			author = "various",
 			
 			--module version
-			version = "0.3.1",
+			version = "0.3.2",
 			
 			-- interface implemented by this module
 			implements = "PluginInterface",
@@ -256,7 +257,7 @@ end
 --
 -- Print some version information and copyright to the output window
 function printVersion()
-	print("\n\n\nDoctrineExport v0.3.1\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
+	print("\n\n\nDoctrine Export v" .. getModuleInfo().version .. "\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
 end
 
 --
@@ -280,6 +281,11 @@ function wbSimpleType2DoctrineDatatype(column)
 		  doctrineType = "string"
 		end
 		
+		-- convert INT to integer (Doctrine does not know "int")
+		if ( column.simpleType.name == "INT" ) then
+			doctrineType = "integer"
+		end
+		
 		-- convert TINYINT to integer(1)
 		if ( column.simpleType.name == "TINYINT" ) then
 			doctrineType = "integer(1)"
@@ -293,10 +299,6 @@ function wbSimpleType2DoctrineDatatype(column)
 		-- convert MEDIUMINT to integer(3)
 		if ( column.simpleType.name == "MEDIUMINT" ) then
 			doctrineType = "integer(3)"
-		end
-		
-		if ( column.simpleType.name == "INT" ) then
-			doctrineType = "integer"
 		end
 		
 		-- convert BIGINT to integer(8)
