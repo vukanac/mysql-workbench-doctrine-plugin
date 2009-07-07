@@ -1,7 +1,7 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.3
--- Authors: Johannes Müller, Karsten Wutzke
+-- Version: 0.3.4
+-- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
 -- http://code.google.com/p/mysql-workbench-doctrine-plugin/
@@ -59,10 +59,16 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.3.4 (JM)
+--    + [fix] multiple column unique indexes
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=8
+--    + [add] preparation for cross database joins (works with MySQL and PostgreSQL and maybe others)
+--            please switch the function getCrossDatabaseJoinsFlag() return value to "on" and restart
+--            MySQL Workbench (may cause problems with symfony)
+--            see http://www.doctrine-project.org/blog/cross-database-joins
 -- 0.3.3 (JM)
 --    + [add] support for I18n schemes with *_translation tables
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=7
---    + [oth] replaced code indent tabs with spaces
 -- 0.3.2 (Karsten Wutzke)
 --    + [oth] small change in handling version information
 -- 0.3.1 (JM)
@@ -150,6 +156,17 @@
 --    + [add] column length [e.g. varchar(255)]
 --
 ----------------------------------------------------------------------------------------------
+
+function getCrossDatabaseJoinsFlag()
+    -- Switch this flag to "on" if you want to use
+    -- cross database joins described on
+    -- http://www.doctrine-project.org/blog/cross-database-joins
+    -- this may break symfony models
+
+    -- return "on|off"
+    return "off"
+end
+
 -- standard plugin functions
 --
 -- this function is called first by MySQL Workbench core to determine number of
@@ -168,7 +185,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.3",
+            version = "0.3.4",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -319,7 +336,7 @@ function wbSimpleType2DoctrineDatatype(column)
         end
 
         -- text
-        if( column.simpleType.name == "TEXT" ) then
+        if ( column.simpleType.name == "TEXT" ) then
             doctrineType = "clob"
         end
 
@@ -629,7 +646,7 @@ function generateYamlSchema(cat)
     local i, j, schema, tbl
     local yaml = "---\n"
     local optionsSetFlag = false
-    
+
     for i = 1, grtV.getn(cat.schemata) do
         schema = cat.schemata[i]
 
@@ -652,7 +669,7 @@ function generateYamlSchema(cat)
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
 
             yaml = yaml .. "\n"
-            
+
             optionsSetFlag = true
         end
 
@@ -660,7 +677,7 @@ function generateYamlSchema(cat)
 
         for j = 1, grtV.getn(schema.tables) do
             tbl = schema.tables[j]
-            
+
             --
             -- do not export *_translation tables
             if ( string.endswith(tbl.name, "_translation") == false ) then
@@ -676,20 +693,20 @@ end
 
 function buildYamlForSingleColumn(tbl, col, yaml)
     local l, m
-    
+
     doctrineType = wbSimpleType2DoctrineDatatype(col)
     --
     -- start of adding a column
     yaml = yaml.."    "..renameIdColumns(col.name)..":\n"
     yaml = yaml.."      type: " .. doctrineType
-    if( doctrineType == "enum" ) then
+    if ( doctrineType == "enum" ) then
         -- enum handling
         yaml = yaml.."\n"
         yaml = yaml.."      values: ["
         yaml = yaml.. handleEnum(col)
         yaml = yaml.."]"
     end
-    if( col.length ~= -1 ) then
+    if ( col.length ~= -1 ) then
         yaml = yaml.. "(" ..col.length.. ")"
     end
     yaml = yaml.."\n"
@@ -697,10 +714,10 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         index = tbl.indices[m]
         --
         -- checking for primary index
-        if( index.indexType == "PRIMARY") then
+        if ( index.indexType == "PRIMARY" ) then
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                if(column.referencedColumn.name == col.name) then
+                if ( column.referencedColumn.name == col.name ) then
                     yaml = yaml .."      primary: true\n"
                 end
             end
@@ -708,21 +725,24 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         --
         -- checking for unique index
         if ( index.indexType == "UNIQUE" ) then
-            for l = 1, grtV.getn(index.columns) do
-                column = index.columns[l]
-                if(column.referencedColumn.name == col.name) then
-                    yaml = yaml .. "      unique: true\n"
+            -- check if just one column in index
+            if ( grtV.getn(index.columns) == 1 ) then
+                for l = 1, grtV.getn(index.columns) do
+                    column = index.columns[l]
+                    if ( column.referencedColumn.name == col.name ) then
+                        yaml = yaml .. "      unique: true\n"
+                    end
                 end
             end
         end
     end
     --
     -- setting flags
-    if( col.flags ~= nil ) then
+    if ( col.flags ~= nil ) then
         local flag
         for l = 1, grtV.getn(col.flags) do
             flag = grtV.toLua(col.flags[l])
-            if( flag ~= nil ) then
+            if ( flag ~= nil ) then
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
@@ -768,7 +788,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
     if ( col.simpleType ~= nil and col.simpleType.name == "CHAR" ) then
         yaml = yaml.."      fixed: true\n"
     end
-    
+
     return yaml
 end
 
@@ -785,9 +805,20 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --print(" <-> ")
     --print(pluralizeTableName(tbl.name))
 
+    --
+    -- add the real table name to the model
+    if ( buildTableName(tbl.name) ~= tbl.name and getCrossDatabaseJoinsFlag() ~= "on" ) then
+        yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
+    end
+
+    if ( getCrossDatabaseJoinsFlag() == "on" ) then
+        yaml = yaml .. "  tableName: " .. schema.name .. "." .. tbl.name .. "\n"
+        yaml = yaml .. "  connection: " .. schema.name .. "\n"
+    end
+
     -- check if table ends with _ns means
     -- NestedSet Model
-    if( isNestedTableModel(tbl.name) ) then
+    if ( isNestedTableModel(tbl.name) ) then
         actAsPart = actAsPart .. "    NestedSet:\n"
     end
 
@@ -806,19 +837,13 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     end
 
     --
-    -- add the real table name to the model
-    if ( buildTableName(tbl.name) ~= tbl.name ) then
-        yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
-    end
-
-    --
     -- iterate through the table columns
     yaml = yaml .. "  columns:\n"
     for k = 1, grtV.getn(tbl.columns) do
         col = tbl.columns[k]
         yaml = buildYamlForSingleColumn(tbl, col, yaml)
     end
-    
+
     --
     -- hack for adding columns outsourced
     -- to a *_translation table
@@ -832,7 +857,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             end
         end
     end
-    
+
     --
     -- add foreign keys
     yaml = yaml .. relationBuilding(tbl, schema.tables)
@@ -847,7 +872,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
                 indexes = indexes .. renameIdColumns(column.referencedColumn.name)
-                if l < grtV.getn(index.columns) then
+                if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
             end
@@ -862,15 +887,40 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
                 indexes = indexes .. renameIdColumns(column.referencedColumn.name)
-                if l < grtV.getn(index.columns) then
+                if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
             end
             indexes = indexes .. "]\n"
             indexes = indexes .. "      type: fulltext\n"
         end
+        if ( index.indexType == "UNIQUE" ) then
+            -- check if more than 1 column in index
+            -- otherwise ignore
+            if( grtV.getn(index.columns) > 1 ) then
+                indexes = indexes .. "    " .. index.name .. ":\n"
+                indexes = indexes .. "      fields:\n"
+                for l = 1, grtV.getn(index.columns) do
+                    column = index.columns[l]
+                    indexes = indexes .. "        " .. renameIdColumns(column.referencedColumn.name) .. ":\n"
+                    -- check if column in index is ASC or DESC
+                    if ( column.descend ~= nil and column.descend ~= "" ) then
+                        if ( column.descend == 0 ) then
+                            indexes = indexes .. "          sorting: ASC\n"
+                        else
+                            indexes = indexes .. "          sorting: DESC\n"
+                        end
+                    end
+                    -- check for column length in index
+                    if ( column.columnLength ~= nil and column.columnLength ~= "" and column.columnLength ~= 0 ) then
+                        indexes = indexes .. "          length: " .. column.columnLength .. "\n"
+                    end
+                end
+                indexes = indexes .. "      type: unique\n"
+            end
+        end
     end
-    if( indexes ~= "") then
+    if ( indexes ~= "" ) then
         yaml = yaml .. "  indexes:\n" .. indexes
     end
     --
