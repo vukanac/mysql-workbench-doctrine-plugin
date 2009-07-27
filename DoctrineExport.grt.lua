@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.4
+-- Version: 0.3.5
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,12 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.3.5 (JM)
+--    + [fix] type mediumtext | mediumblob -> clob(16777215)
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=9
+--    + [add] type longtext   | longblob   -> clob
+--            type tinytext   | tinyblob   -> clob(255)
+--            type text       | blob       -> clob(65535)
 -- 0.3.4 (JM)
 --    + [fix] multiple column unique indexes
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=8
@@ -69,6 +75,7 @@
 -- 0.3.3 (JM)
 --    + [add] support for I18n schemes with *_translation tables
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=7
+--    + [oth] replaced code indent tabs with spaces
 -- 0.3.2 (Karsten Wutzke)
 --    + [oth] small change in handling version information
 -- 0.3.1 (JM)
@@ -185,7 +192,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.4",
+            version = "0.3.5",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -335,8 +342,23 @@ function wbSimpleType2DoctrineDatatype(column)
             end
         end
 
-        -- text
-        if ( column.simpleType.name == "TEXT" ) then
+        -- tinytext or tinyblob
+        if ( column.simpleType.name == "TINYTEXT" or column.simpleType.name == "TINYBLOB" ) then
+            doctrineType = "clob(255)"
+        end
+        
+        -- text or blob
+        if ( column.simpleType.name == "TEXT" or column.simpleType.name == "BLOB" ) then
+            doctrineType = "clob(65535)"
+        end
+        
+        -- mediumtext or mediumblob
+        if ( column.simpleType.name == "MEDIUMTEXT" or column.simpleType.name == "MEDIUMBLOB" ) then
+            doctrineType = "clob(16777215)"
+        end
+        
+        -- longtext or longblob
+        if ( column.simpleType.name == "LONGTEXT" or column.simpleType.name == "LONGBLOB" ) then
             doctrineType = "clob"
         end
 
