@@ -60,7 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.3.6 (JM)
---    + [oth] changed convertion of INT from integer to integer(4)
+--    + [oth] changed conversion of INT from integer to integer(4)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=10
 -- 0.3.5 (JM)
 --    + [fix] type mediumtext | mediumblob -> clob(16777215)
