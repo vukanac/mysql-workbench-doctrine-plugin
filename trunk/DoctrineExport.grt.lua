@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.5
+-- Version: 0.3.6
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,9 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.3.6 (JM)
+--    + [oth] changed convertion of INT from integer to integer(4)
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=10
 -- 0.3.5 (JM)
 --    + [fix] type mediumtext | mediumblob -> clob(16777215)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=9
@@ -192,7 +195,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.5",
+            version = "0.3.6",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -309,11 +312,6 @@ function wbSimpleType2DoctrineDatatype(column)
           doctrineType = "string"
         end
 
-        -- convert INT to integer (Doctrine does not know "int")
-        if ( column.simpleType.name == "INT" ) then
-            doctrineType = "integer"
-        end
-
         -- convert TINYINT to integer(1)
         if ( column.simpleType.name == "TINYINT" ) then
             doctrineType = "integer(1)"
@@ -329,6 +327,11 @@ function wbSimpleType2DoctrineDatatype(column)
             doctrineType = "integer(3)"
         end
 
+        -- convert INT to integer (Doctrine does not know "int")
+        if ( column.simpleType.name == "INT" ) then
+            doctrineType = "integer(4)"
+        end
+        
         -- convert BIGINT to integer(8)
         if ( column.simpleType.name == "BIGINT" ) then
             doctrineType = "integer(8)"
