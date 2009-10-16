@@ -7,7 +7,7 @@
 -- http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
 -- * The export plugin allows you to export a catalog as Doctrine YAML schema.
--- * This plugin was tested with MySQL Workbench 5.1.18a OSS
+-- * This plugin was tested with MySQL Workbench 5.1.18a (JM) and 5.2.4a (KW)
 --
 -- This file is free software: you can redistribute it and/or
 -- modify it under the terms of the GNU Lesser General Public
@@ -59,13 +59,16 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
--- 0.3.7 (KW)
+-- 0.3.7 (KW, JM)
 --    + [fix] changed conversion of INTEGER from integer to integer(4)
 --    + [fix] changed conversion of BLOB types from clob(n) to blob(n)
 --            see version 0.3.5 notes
---    + [add] added DEC and NUMERIC to output decimal(p,s)
+--    + [add] added DEC and NUMERIC to output decimal
+--    + [fix] now allowing DECIMAL, DEC, and NUMERIC to be specified with optional precision and
+--            scale
 --    + [imp] improved the save-to-file routine to work for previously saved files that do not exist
 --            anymore (file deleted, renamed, or moved)
+--    + [imp] restructured and simplified the supported types code
 -- 0.3.6 (JM)
 --    + [oth] changed conversion of INT from integer to integer(4)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=10
@@ -319,10 +322,16 @@ function wbSimpleType2DoctrineDatatype(column)
         ["DEC"]          = "decimal",
         ["DECIMAL"]      = "decimal",
         ["NUMERIC"]      = "decimal",
+        ["FLOAT"]        = "float",
+        ["DOUBLE"]       = "double",
+        ["DATE"]         = "date",
+        ["TIME"]         = "time",
         ["DATETIME"]     = "timestamp",
         ["TIMESTAMP"]    = "timestamp",
         ["BOOL"]         = "boolean",
         ["BOOLEAN"]      = "boolean",
+        ["BINARY"]       = "binary",      -- internally Doctrine seems to map binary to blob, which is wrong
+        ["VARBINARY"]    = "varbinary",   -- internally Doctrine seems to map varbinary to blob, which is OK
         ["TINYTEXT"]     = "clob(255)",
         ["TEXT"]         = "clob(65535)",
         ["MEDIUMTEXT"]   = "clob(16777215)",
@@ -335,32 +344,42 @@ function wbSimpleType2DoctrineDatatype(column)
         ["LONGBLOB"]     = "blob",
         ["ENUM"]         = "enum"
     }
+    
+    local typeName = nil
     local doctrineType = "unknown"
 
-    -- boolean, bool, and integer don't seem to be simple types, but rather user types...
+    -- assign typeName with simpleType or userType (structuredType will not be supported anytime soon)
     if ( column.simpleType ~= nil ) then
-        --print("\n" .. column.name .. " type = " .. column.simpleType.name)
-        doctrineType = conversionTable[(column.simpleType.name)] or ("unsupported simpleType " .. column.simpleType.name)
-
-        -- in case of a decimal type try to add precision and scale
-        if ( doctrineType == "decimal" ) then
-            if ( column.precision ~= nil
-                 and column.scale ~= nil
-                 and column.scale ~= -1
-                 and column.precision ~= -1) then
-                doctrineType = doctrineType .. "(" .. column.precision .. "," .. column.scale .. ")"
-            end
-        end
-        return string.lower(doctrineType)
-
+        typeName = column.simpleType.name
     elseif ( column.userType ~= nil ) then
-        --print("\n" .. column.name .. " type = " .. column.userType.name)
-        doctrineType = conversionTable[(column.userType.name)] or ("unsupported userType " .. column.userType.name)
-        return string.lower(doctrineType)
-
+        typeName = column.userType.name
     elseif ( column.structuredType ~= nil ) then
-        --print("\n" .. column.name .. " type = " .. column.structuredType.name)
-        return "structuredType (not implemented yet)"
+        -- print("\n" .. column.name .. " type = " .. column.structuredType.name)
+        return "structuredType (not implemented)"
+    end
+
+    -- print("\n" .. column.name .. " type = " .. typeName)
+
+    -- grab conversion type
+    doctrineType = conversionTable[(typeName)]
+
+    if ( doctrineType == nil ) then
+        -- expr and a or b is LUA ternary operator fake
+        return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
+    end
+    
+    -- in case of a decimal type try to add precision and scale
+    if ( doctrineType == "decimal" ) then
+        if ( column.precision ~= nil and column.precision ~= -1 ) then
+            -- append precision in any case
+            doctrineType = doctrineType .. "(" .. column.precision
+            -- append optional scale (only possible if precision is valid)
+            if ( column.scale ~= nil and column.scale ~= -1 ) then
+                doctrineType = doctrineType .. "," .. column.scale 
+            end
+            -- close parentheses
+            doctrineType = doctrineType .. ")"
+        end
     end
 
     return string.lower(doctrineType)
