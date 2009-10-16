@@ -1,13 +1,13 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.6
+-- Version: 0.3.7
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
 -- http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
 -- * The export plugin allows you to export a catalog as Doctrine YAML schema.
--- * This plugin was tested with MySQL Workbench 5.1.10 OSS (beta2)
+-- * This plugin was tested with MySQL Workbench 5.1.18a OSS
 --
 -- This file is free software: you can redistribute it and/or
 -- modify it under the terms of the GNU Lesser General Public
@@ -59,6 +59,13 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.3.7 (KW)
+--    + [fix] changed conversion of INTEGER from integer to integer(4)
+--    + [fix] changed conversion of BLOB types from clob(n) to blob(n)
+--            see version 0.3.5 notes
+--    + [add] added DEC and NUMERIC to output decimal(p,s)
+--    + [imp] improved the save-to-file routine to work for previously saved files that do not exist
+--            anymore (file deleted, renamed, or moved)
 -- 0.3.6 (JM)
 --    + [oth] changed conversion of INT from integer to integer(4)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=10
@@ -79,12 +86,12 @@
 --    + [add] support for I18n schemes with *_translation tables
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=7
 --    + [oth] replaced code indent tabs with spaces
--- 0.3.2 (Karsten Wutzke)
+-- 0.3.2 (KW)
 --    + [oth] small change in handling version information
 -- 0.3.1 (JM)
 --    + [fix] changed simple type "INT" to doctrine "integer"
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=6
--- 0.3 (Karsten Wutzke)
+-- 0.3 (KW)
 --    + [fix] types BOOLEAN, BOOL, and INTEGER now working (are no simpleTypes)
 --    + [add] lowercasing for default TRUE and FALSE keywords
 --    + [imp] default NULL, TRUE, and FALSE detected case-insensitively now (WB does not
@@ -95,31 +102,31 @@
 --            not ending with ".yml"
 --    + [imp] removed some unnecessary prints
 --    + [imp] shortened changelog entry types [improvement] to [imp] and [other] to [oth]
--- 0.2 (Karsten Wutzke)
+-- 0.2 (KW)
 --    + [add] foreignAlias for relations
 --    + [fix] exception thrown in relationBuilding on some tables with foreign keys where the
---      column and referenced columns list has zero length
+--            column and referenced columns list has zero length
 --    + [imp] replaced all string.len() calls with the length operator #s
 --    + [add] function string.endswith()
 --    + [imp] eased the code of function exportYamlSchemaToFile (eliminated double if)
 --    + [add] functions to test if a (table) name is plural or singular
 --    + [fix] reanimated functionality for (English) plural table names
 --    + [add] functionality to adjust special (English) table names ending with "ies" to
---      convert "ie" to "y" ("Countries" -> "Country") and more
+--            convert "ie" to "y" ("Countries" -> "Country") and more
 --    + [add] data type conversion of integer types and CHAR, BOOLEAN, and BOOL:
---         TINYINT   -> integer(1)
---         SMALLINT  -> integer(2)
---         MEDIUMINT -> integer(3)
---         INT       -> integer
---         INTEGER   -> integer
---         BIGINT    -> integer(8)
---         BOOLEAN   -> boolean
---         BOOL      -> boolean
---         CHAR      -> string + fixed option
+--            TINYINT   -> integer(1)
+--            SMALLINT  -> integer(2)
+--            MEDIUMINT -> integer(3)
+--            INT       -> integer
+--            INTEGER   -> integer
+--            BIGINT    -> integer(8)
+--            BOOLEAN   -> boolean
+--            BOOL      -> boolean
+--            CHAR      -> string + fixed option
 --    + [add] option for CHAR columns
 --    + [imp] removed using the table name capitalization function (ucfirst) from
---      function buildTableName(), like this tables retain their original names and the
---      default Workbench naming convention "_has_" still gets handled correctly
+--            function buildTableName(), like this tables retain their original names and the
+--            default Workbench naming convention "_has_" still gets handled correctly
 --    + [imp] replaced "\r\n" line endings with "\n" only
 --    + [imp] using lowercase for default null values
 --    + [imp] restructured MySQL plugin init code for easier understanding
@@ -128,14 +135,14 @@
 --    + [add] print version name on execution in debug window
 -- 0.1alpha8
 --    + [fix] changed behavior of table renaming (thanks to Francisco Ernesto Teixeira)
---      taBleNaMe -> Tablename ->[fix]-> TaBleNaMe
+--            taBleNaMe -> Tablename ->[fix]-> TaBleNaMe
 -- 0.1alpha7
 --    + [oth] changed the license from GPLv2 to LGPLv3
 --    + [fix] removed plural correction of table names (deprecated in Doctrine 1.0)
 -- 0.1alpha6
 --    + [fix] some conversion from workbench type to Doctrine type
---         BIGINT   -> INTEGER
---         DATETIME -> TIMESTAMP
+--            BIGINT   -> INTEGER
+--            DATETIME -> TIMESTAMP
 --    + [fix] decimal (precision + scale)
 --    + [fix] enum handling
 -- 0.1alpha5 by quocbao (qbao.nguyen@gmail.com)
@@ -195,7 +202,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.6",
+            version = "0.3.7",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -294,105 +301,69 @@ end
 --
 -- Convert workbench simple types to doctrine types
 function wbSimpleType2DoctrineDatatype(column)
-
-    --print("\n")
-    --print(column)
-
-    local doctrineType
+    local conversionTable = {
+        ["VARCHAR"]      = "string",
+        ["CHAR"]         = "string",
+        ["CHARACTER"]    = "string",
+        ["INT1"]         = "integer(1)",
+        ["TINYINT"]      = "integer(1)",
+        ["INT2"]         = "integer(2)",
+        ["SMALLINT"]     = "integer(2)",
+        ["INT3"]         = "integer(3)",
+        ["MEDIUMINT"]    = "integer(3)",
+        ["INT4"]         = "integer(4)",
+        ["INT"]          = "integer(4)",
+        ["INTEGER"]      = "integer(4)",
+        ["INT8"]         = "integer(8)",
+        ["BIGINT"]       = "integer(8)",
+        ["DEC"]          = "decimal",
+        ["DECIMAL"]      = "decimal",
+        ["NUMERIC"]      = "decimal",
+        ["DATETIME"]     = "timestamp",
+        ["TIMESTAMP"]    = "timestamp",
+        ["BOOL"]         = "boolean",
+        ["BOOLEAN"]      = "boolean",
+        ["TINYTEXT"]     = "clob(255)",
+        ["TEXT"]         = "clob(65535)",
+        ["MEDIUMTEXT"]   = "clob(16777215)",
+        ["LONG"]         = "clob(16777215)",
+        ["LONG VARCHAR"] = "clob(16777215)",
+        ["LONGTEXT"]     = "clob",
+        ["TINYBLOB"]     = "blob(255)",
+        ["BLOB"]         = "blob(65535)",
+        ["MEDIUMBLOB"]   = "blob(16777215)",
+        ["LONGBLOB"]     = "blob",
+        ["ENUM"]         = "enum"
+    }
+    local doctrineType = "unknown"
 
     -- boolean, bool, and integer don't seem to be simple types, but rather user types...
     if ( column.simpleType ~= nil ) then
-
-        doctrineType = column.simpleType.name
-
         --print("\n" .. column.name .. " type = " .. column.simpleType.name)
+        doctrineType = conversionTable[(column.simpleType.name)] or ("unsupported simpleType " .. column.simpleType.name)
 
-        -- convert VARCHAR and CHAR to string
-        if ( column.simpleType.name == "VARCHAR" or column.simpleType.name == "CHAR" ) then
-          doctrineType = "string"
-        end
-
-        -- convert TINYINT to integer(1)
-        if ( column.simpleType.name == "TINYINT" ) then
-            doctrineType = "integer(1)"
-        end
-
-        -- convert SMALLINT to integer(2)
-        if ( column.simpleType.name == "SMALLINT" ) then
-            doctrineType = "integer(2)"
-        end
-
-        -- convert MEDIUMINT to integer(3)
-        if ( column.simpleType.name == "MEDIUMINT" ) then
-            doctrineType = "integer(3)"
-        end
-
-        -- convert INT to integer (Doctrine does not know "int")
-        if ( column.simpleType.name == "INT" ) then
-            doctrineType = "integer(4)"
-        end
-        
-        -- convert BIGINT to integer(8)
-        if ( column.simpleType.name == "BIGINT" ) then
-            doctrineType = "integer(8)"
-        end
-
-        -- decimal
-        if ( column.simpleType.name == "DECIMAL" ) then
-            doctrineType = "decimal"
-            if ( column.precision ~= nil ) then
+        -- in case of a decimal type try to add precision and scale
+        if ( doctrineType == "decimal" ) then
+            if ( column.precision ~= nil
+                 and column.scale ~= nil
+                 and column.scale ~= -1
+                 and column.precision ~= -1) then
                 doctrineType = doctrineType .. "(" .. column.precision .. "," .. column.scale .. ")"
             end
         end
-
-        -- tinytext or tinyblob
-        if ( column.simpleType.name == "TINYTEXT" or column.simpleType.name == "TINYBLOB" ) then
-            doctrineType = "clob(255)"
-        end
-        
-        -- text or blob
-        if ( column.simpleType.name == "TEXT" or column.simpleType.name == "BLOB" ) then
-            doctrineType = "clob(65535)"
-        end
-        
-        -- mediumtext or mediumblob
-        if ( column.simpleType.name == "MEDIUMTEXT" or column.simpleType.name == "MEDIUMBLOB" ) then
-            doctrineType = "clob(16777215)"
-        end
-        
-        -- longtext or longblob
-        if ( column.simpleType.name == "LONGTEXT" or column.simpleType.name == "LONGBLOB" ) then
-            doctrineType = "clob"
-        end
-
-        -- convert DATETIME to TIMESTAMP (DATETIME is not ISO/IEC standard SQL)
-        if ( column.simpleType.name == "DATETIME" ) then
-            doctrineType = "timestamp"
-        end
-
         return string.lower(doctrineType)
 
     elseif ( column.userType ~= nil ) then
-
         --print("\n" .. column.name .. " type = " .. column.userType.name)
-
-        if ( column.userType.name == "INTEGER" ) then
-            doctrineType = "integer"
-        end
-
-        -- convert BOOLEAN and BOOL to boolean
-        if ( column.userType.name == "BOOLEAN" or column.userType.name == "BOOL" ) then
-            doctrineType = "boolean"
-        end
-
+        doctrineType = conversionTable[(column.userType.name)] or ("unsupported userType " .. column.userType.name)
         return string.lower(doctrineType)
 
     elseif ( column.structuredType ~= nil ) then
         --print("\n" .. column.name .. " type = " .. column.structuredType.name)
         return "structuredType (not implemented yet)"
-    else
-        return "unknown"
     end
+
+    return string.lower(doctrineType)
 end
 
 --
@@ -992,14 +963,15 @@ function exportYamlSchemaToFile(catalog)
 
     --print("\nFilepath is: " .. file)
 
-    if ( file ~= nil and
-         Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
+    if (     file ~= nil
+         and io.open(file, "w")
+         and Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
 
         -- global
         doctrineExportPath = file
 
     else
-        doctrineExportPath = Workbench:input("Please enter a path to the file to export the doctrine schema to.")
+        doctrineExportPath = Workbench:input("Please enter a path to the file to export the doctrine schema to.", "param1", "param2", "param3", "param4")
 
         if ( doctrineExportPath ~= "" ) then
             -- Try to save the filepath for the next time:
