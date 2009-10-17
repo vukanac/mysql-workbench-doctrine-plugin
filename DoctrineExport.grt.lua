@@ -59,6 +59,9 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [add] added mapping for MySQL datatype YEAR to integer(2)
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
+--    + [add] added mapping for MySQL datatype SET to ENUM
 --    + [fix] removed binary flag for columns -> not supported by doctrine
 -- 0.3.7 (KW, JM)
 --    + [fix] changed conversion of INTEGER from integer to integer(4)
@@ -329,6 +332,7 @@ function wbSimpleType2DoctrineDatatype(column)
         ["TIME"]         = "time",
         ["DATETIME"]     = "timestamp",
         ["TIMESTAMP"]    = "timestamp",
+        ["YEAR"]         = "integer(2)",
         ["BOOL"]         = "boolean",
         ["BOOLEAN"]      = "boolean",
         ["BINARY"]       = "binary",      -- internally Doctrine seems to map binary to blob, which is wrong
@@ -343,7 +347,8 @@ function wbSimpleType2DoctrineDatatype(column)
         ["BLOB"]         = "blob(65535)",
         ["MEDIUMBLOB"]   = "blob(16777215)",
         ["LONGBLOB"]     = "blob",
-        ["ENUM"]         = "enum"
+        ["ENUM"]         = "enum",
+        ["SET"]          = "enum"
     }
     
     local typeName = nil
