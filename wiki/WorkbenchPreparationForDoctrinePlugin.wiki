@@ -6,7 +6,7 @@ Please read the following section carefully, because this may be important for y
 
   # Use *capitalized table names* (e.g. Persons not persons)
   # Use *plural table names*. This is mainly because a relation (~table) in the relational model is a "mathematically defined set of tuples". As such, tables are better thought of as sets (entity sets in conceptual Entity Relationship Diagrams).
-  # *Avoid shuffling lower and uppercase characters* in table names, except it's composed by different tables (e.g. Persons not PeRsOnS, but PersonsEmails is OK)
+  # *Avoid shuffling lower and uppercase characters in table names*, except it's composed by different tables (e.g. Persons not PeRsOnS, but PersonsEmails is OK)
   # Be aware of critical table names like "Doctrine" or "Table". Don't use these.
 
 == Plural Table Names Result in Singular ORM Classes ==
