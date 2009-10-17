@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.8
+-- Version: 0.3.9
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,10 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.3.9 (KW)
+--    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
+--            a singular foreignAlias is created, if many is found a pluralized foreignAlias
+--            is created
 -- 0.3.8 (JM, KW)
 --    + [add] added mapping of type YEAR -> integer(2)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
@@ -215,7 +219,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.8",
+            version = "0.3.9",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -583,8 +587,19 @@ function relationBuilding(tbl, tables)
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
             relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-            -- relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n" -- old... and wrong?
-            relations = relations .. "      foreignAlias: " .. tbl.name .. "\n" -- new: always take original table name
+            
+            local fkReference = nil;
+            
+            -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
+            if ( foreignKey.many == 1 ) then
+                fkReference = pluralizeTableName(tbl.name)
+            elseif ( foreignKey.many == 0 ) then
+                fkReference = singularizeTableName(tbl.name)
+            else
+                fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
+            end
+            
+            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"            
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -671,7 +686,7 @@ function generateYamlSchema(cat)
 
         if ( optionsSetFlag == false ) then
             -- automatically detect relations
-            yaml = yaml .. "detect_relations: true\n"
+            -- yaml = yaml .. "detect_relations: true\n"
             --
             -- set basic options
             yaml = yaml .. "options:\n"
@@ -681,7 +696,7 @@ function generateYamlSchema(cat)
             if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
                 yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
             end
-            -- does not exist
+            -- does not exist in WB yet (6.x?)
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
 
