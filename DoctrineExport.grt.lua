@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.8
+-- Version: 0.5.0pre
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,13 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- ************************************
+-- ** THIS VERSION IS NOT FUNCTIONAL **
+-- ** DO NOT USE THIS VERSION        **
+-- ************************************
+-- 0.5.0pre (KW,JM)
+--    + [add] new Config class
+-- [..]
 -- 0.3.8 (JM, KW)
 --    + [add] added mapping of type YEAR -> integer(2)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
@@ -215,7 +222,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.8",
+            version = "0.5.0pre",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -305,12 +312,27 @@ end
 -- ##    change from here    ##
 -- ############################
 
+-- declare Config class
+Config = {
+    enableCrossDatabaseJoins           = false,     -- default false| true (for further information see blog post on
+                                                    -- http://www.doctrine-project.org/blog/cross-database-joins )
+    defaultStorageEngine               = "InnoDB",  -- default InnoDB|MyISAM
+    enableStorageEngineOverride        = false,     -- default false|true
+    enableOptionsHeader                = true,      -- default true|false (enable header output)
+    enableRenameIdColumns              = true,      -- default true|false (detect_relations feature of doctrine)
+    enableRenameUnderscoresToCamelcase = true,      -- default true|false (enable table_name -> tableName)
+    enableRecapitalizeTableNames       = "first",   -- default first|all|none
+    enableSingularPluralization        = true,      -- default true|false
+    enableDoctrine20support            = false      -- default true|false
+}
+
 --
 -- Print some version information and copyright to the output window
 function printVersion()
     print("\n\n\nDoctrine Export v" .. getModuleInfo().version .. "\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
 end
 
+--
 --
 -- Convert workbench simple types to doctrine types
 function wbSimpleType2DoctrineDatatype(column)
@@ -355,7 +377,7 @@ function wbSimpleType2DoctrineDatatype(column)
         ["LONGBLOB"]     = "blob",
         ["ENUM"]         = "enum"
     }
-    
+
     local typeName = nil
     local doctrineType = "unknown"
 
@@ -378,7 +400,7 @@ function wbSimpleType2DoctrineDatatype(column)
         -- expr and a or b is LUA ternary operator fake
         return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
     end
-    
+
     -- in case of a decimal type try to add precision and scale
     if ( doctrineType == "decimal" ) then
         if ( column.precision ~= nil and column.precision ~= -1 ) then
@@ -386,7 +408,7 @@ function wbSimpleType2DoctrineDatatype(column)
             doctrineType = doctrineType .. "(" .. column.precision
             -- append optional scale (only possible if precision is valid)
             if ( column.scale ~= nil and column.scale ~= -1 ) then
-                doctrineType = doctrineType .. "," .. column.scale 
+                doctrineType = doctrineType .. "," .. column.scale
             end
             -- close parentheses
             doctrineType = doctrineType .. ")"
@@ -412,9 +434,6 @@ end
 function ucfirst(s)
     -- only capitalize the very first char, leave all others untouched
     return string.upper(string.sub(s, 0, 1)) .. string.sub(s, 2, #s)
-
-    -- old: lowers rest for whatever reason
-    --return string.upper(string.sub(s, 0, 1)) .. string.lower(string.sub(s, 2, #s))
 end
 
 --
