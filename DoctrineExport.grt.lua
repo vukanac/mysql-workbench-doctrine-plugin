@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.7
+-- Version: 0.3.8
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,9 +59,15 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
---    + [add] added mapping for MySQL datatype YEAR to integer(2)
+-- 0.3.8 (JM, KW)
+--    + [add] added mapping of type YEAR -> integer(2)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
---    + [add] added mapping for MySQL datatype SET to ENUM
+--    + [fix] removed the renameIdColumns function that worked with the (bad) Workbench default
+--            primary key and associative table naming conventions to be used with the Doctrine
+--            "detect_relations" option
+--            see the plugin Wiki page
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=11
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=15
 --    + [fix] removed binary flag for columns -> not supported by doctrine
 -- 0.3.7 (KW, JM)
 --    + [fix] changed conversion of INTEGER from integer to integer(4)
@@ -209,7 +215,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.7",
+            version = "0.3.8",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -347,8 +353,7 @@ function wbSimpleType2DoctrineDatatype(column)
         ["BLOB"]         = "blob(65535)",
         ["MEDIUMBLOB"]   = "blob(16777215)",
         ["LONGBLOB"]     = "blob",
-        ["ENUM"]         = "enum",
-        ["SET"]          = "enum"
+        ["ENUM"]         = "enum"
     }
     
     local typeName = nil
@@ -417,16 +422,6 @@ end
 function underscoresToCamelCase(s)
    s = string.gsub(s, "_(%w)", function(v)
          return string.upper(v)
-       end)
-   return s
-end
-
---
--- rename idtable to id
--- rename table_idtable to table_id
-function renameIdColumns(s)
-   s = string.gsub(s, "(id%w+)", function(v)
-         return "id"
        end)
    return s
 end
@@ -582,13 +577,14 @@ function relationBuilding(tbl, tables)
 
         -- check zero length
         if ( #foreignKey.columns > 0 ) then
-            relations = relations .. "      local: " .. renameIdColumns(foreignKey.columns[1].name) .. "\n"
+            relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
         end
 
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
-            relations = relations .. "      foreign: " .. renameIdColumns(foreignKey.referencedColumns[1].name) .. "\n"
-            relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n"
+            relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
+            -- relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n" -- old... and wrong?
+            relations = relations .. "      foreignAlias: " .. tbl.name .. "\n" -- new: always take original table name
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -718,7 +714,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
     doctrineType = wbSimpleType2DoctrineDatatype(col)
     --
     -- start of adding a column
-    yaml = yaml.."    "..renameIdColumns(col.name)..":\n"
+    yaml = yaml.."    "..col.name..":\n"
     yaml = yaml.."      type: " .. doctrineType
     if ( doctrineType == "enum" ) then
         -- enum handling
@@ -894,7 +890,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
+                indexes = indexes .. column.referencedColumn.name
                 if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
@@ -909,7 +905,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
+                indexes = indexes .. column.referencedColumn.name
                 if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
@@ -925,7 +921,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
                 indexes = indexes .. "      fields:\n"
                 for l = 1, grtV.getn(index.columns) do
                     column = index.columns[l]
-                    indexes = indexes .. "        " .. renameIdColumns(column.referencedColumn.name) .. ":\n"
+                    indexes = indexes .. "        " .. column.referencedColumn.name .. ":\n"
                     -- check if column in index is ASC or DESC
                     if ( column.descend ~= nil and column.descend ~= "" ) then
                         if ( column.descend == 0 ) then
