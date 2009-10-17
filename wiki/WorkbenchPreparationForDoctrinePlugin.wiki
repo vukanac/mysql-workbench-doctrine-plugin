@@ -18,4 +18,4 @@ MySQL Workbench comes with badly defaulted naming conventions, such as VARCHAR(4
 
 || *field* || *from* || *to* ||
 ||PK name||{{{id%table%}}}||{{{id}}}||
-||Associative table name||{{{%stable%_has_%dtable%}}}||{{{%stable%_%dtable%}}}||
+||Associative table name||{{{%stable%_has_%dtable%}}}||{{{%stable%%dtable%}}}||
