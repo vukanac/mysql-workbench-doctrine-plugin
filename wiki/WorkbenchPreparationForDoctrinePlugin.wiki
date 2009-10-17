@@ -1,21 +1,21 @@
-= How to prepare workbench before using doctrine plugin =
+= How to prepare MySQL Workbench for use with the Doctrine plugin =
 
 Please read the following section carefully, because this may be important for you.
 
-== Recommendations on table naming conventions ==
+== Recommendations on Table Naming ==
 
-  # use *uppercase table names* (e.g. Persons not persons)
-  # use *plural table names*, because they consist of sets of entities and not just one entity (e.g Persons not Person)
-  # *be aware* of critical table names like "Doctrine" or "Table"
+  # Use *capitalized table names* (e.g. Persons not persons)
+  # Use *plural table names*. This is mainly because a relation (~table) in the relational model is a "mathematically defined set of tuples". As such, tables are better thought of as sets (entity sets in conceptual Entity Relationship Diagrams).
+  # Be aware of critical table names like "Doctrine" or "Table". Don't use these.
 
-== Plural table names result in singular ORM classes ==
+== Plural Table Names Result in Singular ORM Classes ==
 
-The plugin has a build-in functionality to singularize table names. This means even you declare a table Persons in Workbench this will result in a PHP class Person.
+The plugin has built-in functionality to automatically detect and singularize table names. This means, if you declare a table "Persons" in Workbench it will result in a Doctrine/PHP class "Person". Note, the singularization process does not work for collective names ("Personnel", "Cast", ...) and certain special cases. You can read more in the plugin code.
 
-== Change the default settings in workbench ==
+== Changing the Default Primary Key and Associative Table Naming Conventions ==
 
-Please select in the workbench menu *Tools -> Preferences* and choose the section *Model* in the tab menu. Change the default settings as shown in the table below.
+MySQL Workbench comes with badly defaulted naming conventions, such as VARCHAR(45). The MySQL developers tried to be smart, so people would change these, but in effect, most people don't care at all. As a consequence, the bad choices enforce bad naming conventions and data type selection. Thus, it is more than recommended to adjust the naming conventions to your own needs. To do so, go to *Tools -> Preferences...*, tab *Model* and change the default settings. An example is shown in the table below.
 
 || *field* || *from* || *to* ||
 ||PK name||{{{id%table%}}}||{{{id}}}||
-||Associative table name||{{{%stable%_has_%dtable%}}}||{{{%stable%%dtable%}}}||
+||Associative table name||{{{%stable%_has_%dtable%}}}||{{{%stable%_%dtable%}}}||
