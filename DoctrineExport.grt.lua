@@ -64,7 +64,9 @@
 -- ** DO NOT USE THIS VERSION        **
 -- ************************************
 -- 0.5.0pre (KW,JM)
---    + [add] new Config class
+--    + [add] Helper class
+--    + [add] Yml class
+--    + [add] Config class
 -- [..]
 -- 0.3.8 (JM, KW)
 --    + [add] added mapping of type YEAR -> integer(2)
@@ -333,6 +335,113 @@ function printVersion()
 end
 
 --
+-- declare Helper class
+Helper = {}
+
+--
+-- helper for adding spaces depending
+-- on indentation level
+-- default 2 spaces per level
+function Helper.getSpacesByLevel(indentLevel)
+    return string.rep(" ", indentLevel * 2)
+end
+
+--
+-- declare Yml class
+Yml    = {}
+Yml_mt = {}
+Yml_mt.__index = Yml
+
+--
+-- Yml class constructor
+function Yml:init()
+    yml = {
+        yaml = ""
+    }
+    setmetatable(yml, Yml_mt)
+	return yml
+end
+
+function Yml.writeHeaderSection(self)
+    self:appendLine(0, "---")
+    self:appendLine(0, "")
+
+    -- adds a header of copyright and other informations
+    -- to the top of the yaml text
+    self:appendComment("build with MySQL Workbench Doctrine Plugin " .. getModuleInfo().version )
+    self:appendComment("for more information visit")
+    self:appendComment("http://code.google.com/p/mysql-workbench-doctrine-plugin/")
+    self:appendComment("")
+
+    -- adds the date of workbench export
+    self:appendComment("generated on: " .. os.date("%x"))
+
+    -- adds an empty line after header
+    self:appendLine(0, "")
+
+    -- adds a header to the yaml
+    if ( Config.enableOptionsHeader ) then
+
+        -- enable automatic detection of relations by doctrine
+        self:appendLine(0, "detect_relations: true")
+
+        -- set basic options
+        self:appendLine(0, "options:")
+
+        -- adds the default collation
+        if ( self.scheme.defaultCollationName ~= nil and self.scheme.defaultCollationName ~= "" ) then
+            self:appendLine(1, "collation: " .. self.scheme.defaultCollationName)
+        end
+
+        -- adds the default character set
+        if ( self.scheme.defaultCharacterSetName ~= nil and self.scheme.defaultCharacterSetName ~= "" ) then
+            self:appendLine(1, "charset: " .. self.scheme.defaultCharacterSetName)
+        end
+
+        -- adds the default storage engine specified in config object in head of yaml file
+        self:appendLine(1, "type: " .. Config.defaultStorageEngine)
+
+        -- adds an empty line after header
+        self:appendLine(0, "")
+    end
+end
+
+--
+-- sets database schema
+function Yml.setSchema(self, schema)
+    self.scheme = schema
+end
+
+--
+-- appends a given text to the yaml text
+function Yml.append(self, text)
+    self.yaml = self.yaml .. text
+end
+
+--
+-- appends a given line to yaml text
+function Yml.appendLine(self, indentLevel, text)
+    self.yaml = self.yaml .. Helper.getSpacesByLevel(indentLevel) .. text .. "\n"
+end
+
+--
+-- appends comment to yaml text
+function Yml.appendComment(self, comment)
+    self:appendLine(0, "# " .. comment)
+end
+
+--
+-- returns yaml text
+function Yml.getYaml(self)
+    return self.yaml
+end
+
+--
+-- appends yaml of a given yaml object
+function Yml.embedYml(self, yamlObject)
+    self:append(yamlObject:getYaml())
+end
+
 --
 -- Convert workbench simple types to doctrine types
 function wbSimpleType2DoctrineDatatype(column)
@@ -420,7 +529,7 @@ end
 
 --
 -- handle enums for doctrine
-function handleEnum(column)
+function Helper.handleEnum(column)
     if ( column.datatypeExplicitParams ~= nil ) then
         local s = column.datatypeExplicitParams
         s = string.sub(s, 2, #s - 1)
@@ -739,7 +848,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         -- enum handling
         yaml = yaml.."\n"
         yaml = yaml.."      values: ["
-        yaml = yaml.. handleEnum(col)
+        yaml = yaml.. Helper.handleEnum(col)
         yaml = yaml.."]"
     end
     if ( col.length ~= -1 ) then
