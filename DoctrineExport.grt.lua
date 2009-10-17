@@ -686,7 +686,7 @@ function generateYamlSchema(cat)
 
         if ( optionsSetFlag == false ) then
             -- automatically detect relations
-            -- yaml = yaml .. "detect_relations: true\n"
+            yaml = yaml .. "detect_relations: true\n"
             --
             -- set basic options
             yaml = yaml .. "options:\n"
