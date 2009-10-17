@@ -1,0 +1,21 @@
+= How to prepare workbench before using doctrine plugin =
+
+Please read the following section carefully, because this may be important for you.
+
+== Proposals on table naming conventions ==
+
+  # use uppercase names for tables (e.g. Persons not persons)
+  # use plural names for tables, because they consist of sets of entities and not just one entity (e.g Persons not Person)
+  # be aware of critical table names like "Doctrine" or "Table"
+
+== Plural table names result in singular ORM classes ==
+
+The plugin has a build-in functionality to singularize table names. This means even you declare a table Persons in Workbench this will result in a PHP class Person.
+
+== Change the default settings in workbench ==
+
+Please select in the workbench menu *Tools -> Preferences* and choose the section *Model* in the tab menu. Change the default settings as shown in the table below.
+
+|| *field* || *from* || *to* ||
+||PK name||{{{id%table%}}}||{{{id}}}||
+||Associative table name||{{{%stable%_has_%dtable%}}}||{{{%stable%%dtable%}}}||
