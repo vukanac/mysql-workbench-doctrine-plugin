@@ -59,6 +59,7 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [fix] removed binary flag for columns -> not supported by doctrine
 -- 0.3.7 (KW, JM)
 --    + [fix] changed conversion of INTEGER from integer to integer(4)
 --    + [fix] changed conversion of BLOB types from clob(n) to blob(n)
@@ -761,9 +762,11 @@ function buildYamlForSingleColumn(tbl, col, yaml)
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
-                if ( flag == "BINARY" ) then
-                    yaml = yaml .. "      binary: true\n"
-                end
+                -- 
+                -- not implemented in Doctrine
+                -- if ( flag == "BINARY" ) then
+                --     yaml = yaml .. "      binary: true\n"
+                -- end
                 if ( flag == "ZEROFILL" ) then
                     yaml = yaml .. "      zerofill: true\n"
                 end
