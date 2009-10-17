@@ -2,7 +2,7 @@
 
 Please read the following section carefully, because this may be important for you.
 
-== Proposals on table naming conventions ==
+== Recommendations on table naming conventions ==
 
   # use *uppercase table names* (e.g. Persons not persons)
   # use *plural table names*, because they consist of sets of entities and not just one entity (e.g Persons not Person)
