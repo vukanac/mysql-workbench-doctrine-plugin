@@ -4,9 +4,9 @@ Please read the following section carefully, because this may be important for y
 
 == Proposals on table naming conventions ==
 
-  # use uppercase names for tables (e.g. Persons not persons)
-  # use plural names for tables, because they consist of sets of entities and not just one entity (e.g Persons not Person)
-  # be aware of critical table names like "Doctrine" or "Table"
+  # use *uppercase table names* (e.g. Persons not persons)
+  # use *plural table names*, because they consist of sets of entities and not just one entity (e.g Persons not Person)
+  # *be aware* of critical table names like "Doctrine" or "Table"
 
 == Plural table names result in singular ORM classes ==
 
