@@ -14,7 +14,9 @@ The plugin has built-in functionality to automatically detect and singularize ta
 
 == Changing the Default Primary Key and Associative Table Naming Conventions ==
 
-MySQL Workbench comes with badly defaulted naming conventions, such as VARCHAR(45). The MySQL developers tried to be smart, so people would change these, but in effect, most people don't care at all. As a consequence, the bad choices enforce bad naming conventions and data type selection. Thus, it is more than recommended to adjust the naming conventions to your own needs. To do so, go to *Tools -> Preferences...*, tab *Model* and change the default settings. An example is shown in the table below.
+MySQL Workbench comes with badly defaulted naming conventions, such as VARCHAR(45) for the default data type. The MySQL developers tried to be smart, assuming people would immediately be disturbed by these odd values and change them, but in effect, most people don't care at all. As a consequence, the chosen defaults enforce bad naming conventions and data type selection.
+
+Thus, it is more than recommended to adjust the naming conventions to your own needs. To do so, go to *Tools -> Preferences...*, tab *Model* and change the default settings. An example is shown in the table below.
 
 || *field* || *from* || *to* ||
 ||PK name||{{{id%table%}}}||{{{id}}}||
