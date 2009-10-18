@@ -1,13 +1,13 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.9
--- Authors: Johannes Mueller, Karsten Wutzke
+-- Version: 0.3.3
+-- Authors: Johannes Müller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
 -- http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
 -- * The export plugin allows you to export a catalog as Doctrine YAML schema.
--- * This plugin was tested with MySQL Workbench 5.1.18a (JM) and 5.2.4a (KW)
+-- * This plugin was tested with MySQL Workbench 5.1.10 OSS (beta2)
 --
 -- This file is free software: you can redistribute it and/or
 -- modify it under the terms of the GNU Lesser General Public
@@ -59,56 +59,16 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
--- 0.3.9 (KW)
---    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
---            a singular foreignAlias is created, if many is found a pluralized foreignAlias
---            is created
--- 0.3.8 (JM, KW)
---    + [add] added mapping of type YEAR -> integer(2)
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
---    + [fix] removed the renameIdColumns function that worked with the (bad) Workbench default
---            primary key and associative table naming conventions to be used with the Doctrine
---            "detect_relations" option
---            see the plugin Wiki page
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=11
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=15
---    + [fix] removed binary flag for columns -> not supported by doctrine
--- 0.3.7 (KW, JM)
---    + [fix] changed conversion of INTEGER from integer to integer(4)
---    + [fix] changed conversion of BLOB types from clob(n) to blob(n)
---            see version 0.3.5 notes
---    + [add] added DEC and NUMERIC to output decimal
---    + [fix] now allowing DECIMAL, DEC, and NUMERIC to be specified with optional precision and
---            scale
---    + [imp] improved the save-to-file routine to work for previously saved files that do not exist
---            anymore (file deleted, renamed, or moved)
---    + [imp] restructured and simplified the supported types code
--- 0.3.6 (JM)
---    + [oth] changed conversion of INT from integer to integer(4)
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=10
--- 0.3.5 (JM)
---    + [fix] type mediumtext | mediumblob -> clob(16777215)
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=9
---    + [add] type longtext   | longblob   -> clob
---            type tinytext   | tinyblob   -> clob(255)
---            type text       | blob       -> clob(65535)
--- 0.3.4 (JM)
---    + [fix] multiple column unique indexes
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=8
---    + [add] preparation for cross database joins (works with MySQL and PostgreSQL and maybe others)
---            please switch the function getCrossDatabaseJoinsFlag() return value to "on" and restart
---            MySQL Workbench (may cause problems with symfony)
---            see http://www.doctrine-project.org/blog/cross-database-joins
 -- 0.3.3 (JM)
 --    + [add] support for I18n schemes with *_translation tables
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=7
 --    + [oth] replaced code indent tabs with spaces
--- 0.3.2 (KW)
+-- 0.3.2 (Karsten Wutzke)
 --    + [oth] small change in handling version information
 -- 0.3.1 (JM)
 --    + [fix] changed simple type "INT" to doctrine "integer"
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=6
--- 0.3 (KW)
+-- 0.3 (Karsten Wutzke)
 --    + [fix] types BOOLEAN, BOOL, and INTEGER now working (are no simpleTypes)
 --    + [add] lowercasing for default TRUE and FALSE keywords
 --    + [imp] default NULL, TRUE, and FALSE detected case-insensitively now (WB does not
@@ -119,31 +79,31 @@
 --            not ending with ".yml"
 --    + [imp] removed some unnecessary prints
 --    + [imp] shortened changelog entry types [improvement] to [imp] and [other] to [oth]
--- 0.2 (KW)
+-- 0.2 (Karsten Wutzke)
 --    + [add] foreignAlias for relations
 --    + [fix] exception thrown in relationBuilding on some tables with foreign keys where the
---            column and referenced columns list has zero length
+--      column and referenced columns list has zero length
 --    + [imp] replaced all string.len() calls with the length operator #s
 --    + [add] function string.endswith()
 --    + [imp] eased the code of function exportYamlSchemaToFile (eliminated double if)
 --    + [add] functions to test if a (table) name is plural or singular
 --    + [fix] reanimated functionality for (English) plural table names
 --    + [add] functionality to adjust special (English) table names ending with "ies" to
---            convert "ie" to "y" ("Countries" -> "Country") and more
+--      convert "ie" to "y" ("Countries" -> "Country") and more
 --    + [add] data type conversion of integer types and CHAR, BOOLEAN, and BOOL:
---            TINYINT   -> integer(1)
---            SMALLINT  -> integer(2)
---            MEDIUMINT -> integer(3)
---            INT       -> integer
---            INTEGER   -> integer
---            BIGINT    -> integer(8)
---            BOOLEAN   -> boolean
---            BOOL      -> boolean
---            CHAR      -> string + fixed option
+--         TINYINT   -> integer(1)
+--         SMALLINT  -> integer(2)
+--         MEDIUMINT -> integer(3)
+--         INT       -> integer
+--         INTEGER   -> integer
+--         BIGINT    -> integer(8)
+--         BOOLEAN   -> boolean
+--         BOOL      -> boolean
+--         CHAR      -> string + fixed option
 --    + [add] option for CHAR columns
 --    + [imp] removed using the table name capitalization function (ucfirst) from
---            function buildTableName(), like this tables retain their original names and the
---            default Workbench naming convention "_has_" still gets handled correctly
+--      function buildTableName(), like this tables retain their original names and the
+--      default Workbench naming convention "_has_" still gets handled correctly
 --    + [imp] replaced "\r\n" line endings with "\n" only
 --    + [imp] using lowercase for default null values
 --    + [imp] restructured MySQL plugin init code for easier understanding
@@ -152,14 +112,14 @@
 --    + [add] print version name on execution in debug window
 -- 0.1alpha8
 --    + [fix] changed behavior of table renaming (thanks to Francisco Ernesto Teixeira)
---            taBleNaMe -> Tablename ->[fix]-> TaBleNaMe
+--      taBleNaMe -> Tablename ->[fix]-> TaBleNaMe
 -- 0.1alpha7
 --    + [oth] changed the license from GPLv2 to LGPLv3
 --    + [fix] removed plural correction of table names (deprecated in Doctrine 1.0)
 -- 0.1alpha6
 --    + [fix] some conversion from workbench type to Doctrine type
---            BIGINT   -> INTEGER
---            DATETIME -> TIMESTAMP
+--         BIGINT   -> INTEGER
+--         DATETIME -> TIMESTAMP
 --    + [fix] decimal (precision + scale)
 --    + [fix] enum handling
 -- 0.1alpha5 by quocbao (qbao.nguyen@gmail.com)
@@ -190,17 +150,6 @@
 --    + [add] column length [e.g. varchar(255)]
 --
 ----------------------------------------------------------------------------------------------
-
-function getCrossDatabaseJoinsFlag()
-    -- Switch this flag to "on" if you want to use
-    -- cross database joins described on
-    -- http://www.doctrine-project.org/blog/cross-database-joins
-    -- this may break symfony models
-
-    -- return "on|off"
-    return "off"
-end
-
 -- standard plugin functions
 --
 -- this function is called first by MySQL Workbench core to determine number of
@@ -219,7 +168,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.9",
+            version = "0.3.3",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -318,86 +267,90 @@ end
 --
 -- Convert workbench simple types to doctrine types
 function wbSimpleType2DoctrineDatatype(column)
-    local conversionTable = {
-        ["VARCHAR"]      = "string",
-        ["CHAR"]         = "string",
-        ["CHARACTER"]    = "string",
-        ["INT1"]         = "integer(1)",
-        ["TINYINT"]      = "integer(1)",
-        ["INT2"]         = "integer(2)",
-        ["SMALLINT"]     = "integer(2)",
-        ["INT3"]         = "integer(3)",
-        ["MEDIUMINT"]    = "integer(3)",
-        ["INT4"]         = "integer(4)",
-        ["INT"]          = "integer(4)",
-        ["INTEGER"]      = "integer(4)",
-        ["INT8"]         = "integer(8)",
-        ["BIGINT"]       = "integer(8)",
-        ["DEC"]          = "decimal",
-        ["DECIMAL"]      = "decimal",
-        ["NUMERIC"]      = "decimal",
-        ["FLOAT"]        = "float",
-        ["DOUBLE"]       = "double",
-        ["DATE"]         = "date",
-        ["TIME"]         = "time",
-        ["DATETIME"]     = "timestamp",
-        ["TIMESTAMP"]    = "timestamp",
-        ["YEAR"]         = "integer(2)",
-        ["BOOL"]         = "boolean",
-        ["BOOLEAN"]      = "boolean",
-        ["BINARY"]       = "binary",      -- internally Doctrine seems to map binary to blob, which is wrong
-        ["VARBINARY"]    = "varbinary",   -- internally Doctrine seems to map varbinary to blob, which is OK
-        ["TINYTEXT"]     = "clob(255)",
-        ["TEXT"]         = "clob(65535)",
-        ["MEDIUMTEXT"]   = "clob(16777215)",
-        ["LONG"]         = "clob(16777215)",
-        ["LONG VARCHAR"] = "clob(16777215)",
-        ["LONGTEXT"]     = "clob",
-        ["TINYBLOB"]     = "blob(255)",
-        ["BLOB"]         = "blob(65535)",
-        ["MEDIUMBLOB"]   = "blob(16777215)",
-        ["LONGBLOB"]     = "blob",
-        ["ENUM"]         = "enum"
-    }
-    
-    local typeName = nil
-    local doctrineType = "unknown"
 
-    -- assign typeName with simpleType or userType (structuredType will not be supported anytime soon)
+    --print("\n")
+    --print(column)
+
+    local doctrineType
+
+    -- boolean, bool, and integer don't seem to be simple types, but rather user types...
     if ( column.simpleType ~= nil ) then
-        typeName = column.simpleType.name
-    elseif ( column.userType ~= nil ) then
-        typeName = column.userType.name
-    elseif ( column.structuredType ~= nil ) then
-        -- print("\n" .. column.name .. " type = " .. column.structuredType.name)
-        return "structuredType (not implemented)"
-    end
 
-    -- print("\n" .. column.name .. " type = " .. typeName)
+        doctrineType = column.simpleType.name
 
-    -- grab conversion type
-    doctrineType = conversionTable[(typeName)]
+        --print("\n" .. column.name .. " type = " .. column.simpleType.name)
 
-    if ( doctrineType == nil ) then
-        -- expr and a or b is LUA ternary operator fake
-        return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
-    end
-    
-    -- in case of a decimal type try to add precision and scale
-    if ( doctrineType == "decimal" ) then
-        if ( column.precision ~= nil and column.precision ~= -1 ) then
-            -- append precision in any case
-            doctrineType = doctrineType .. "(" .. column.precision
-            -- append optional scale (only possible if precision is valid)
-            if ( column.scale ~= nil and column.scale ~= -1 ) then
-                doctrineType = doctrineType .. "," .. column.scale 
-            end
-            -- close parentheses
-            doctrineType = doctrineType .. ")"
+        -- convert VARCHAR and CHAR to string
+        if ( column.simpleType.name == "VARCHAR" or column.simpleType.name == "CHAR" ) then
+          doctrineType = "string"
         end
-    end
 
-    return string.lower(doctrineType)
+        -- convert INT to integer (Doctrine does not know "int")
+        if ( column.simpleType.name == "INT" ) then
+            doctrineType = "integer"
+        end
+
+        -- convert TINYINT to integer(1)
+        if ( column.simpleType.name == "TINYINT" ) then
+            doctrineType = "integer(1)"
+        end
+
+        -- convert SMALLINT to integer(2)
+        if ( column.simpleType.name == "SMALLINT" ) then
+            doctrineType = "integer(2)"
+        end
+
+        -- convert MEDIUMINT to integer(3)
+        if ( column.simpleType.name == "MEDIUMINT" ) then
+            doctrineType = "integer(3)"
+        end
+
+        -- convert BIGINT to integer(8)
+        if ( column.simpleType.name == "BIGINT" ) then
+            doctrineType = "integer(8)"
+        end
+
+        -- decimal
+        if ( column.simpleType.name == "DECIMAL" ) then
+            doctrineType = "decimal"
+            if ( column.precision ~= nil ) then
+                doctrineType = doctrineType .. "(" .. column.precision .. "," .. column.scale .. ")"
+            end
+        end
+
+        -- text
+        if( column.simpleType.name == "TEXT" ) then
+            doctrineType = "clob"
+        end
+
+        -- convert DATETIME to TIMESTAMP (DATETIME is not ISO/IEC standard SQL)
+        if ( column.simpleType.name == "DATETIME" ) then
+            doctrineType = "timestamp"
+        end
+
+        return string.lower(doctrineType)
+
+    elseif ( column.userType ~= nil ) then
+
+        --print("\n" .. column.name .. " type = " .. column.userType.name)
+
+        if ( column.userType.name == "INTEGER" ) then
+            doctrineType = "integer"
+        end
+
+        -- convert BOOLEAN and BOOL to boolean
+        if ( column.userType.name == "BOOLEAN" or column.userType.name == "BOOL" ) then
+            doctrineType = "boolean"
+        end
+
+        return string.lower(doctrineType)
+
+    elseif ( column.structuredType ~= nil ) then
+        --print("\n" .. column.name .. " type = " .. column.structuredType.name)
+        return "structuredType (not implemented yet)"
+    else
+        return "unknown"
+    end
 end
 
 --
@@ -426,6 +379,16 @@ end
 function underscoresToCamelCase(s)
    s = string.gsub(s, "_(%w)", function(v)
          return string.upper(v)
+       end)
+   return s
+end
+
+--
+-- rename idtable to id
+-- rename table_idtable to table_id
+function renameIdColumns(s)
+   s = string.gsub(s, "(id%w+)", function(v)
+         return "id"
        end)
    return s
 end
@@ -581,25 +544,13 @@ function relationBuilding(tbl, tables)
 
         -- check zero length
         if ( #foreignKey.columns > 0 ) then
-            relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
+            relations = relations .. "      local: " .. renameIdColumns(foreignKey.columns[1].name) .. "\n"
         end
 
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
-            relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-            
-            local fkReference = nil;
-            
-            -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
-            if ( foreignKey.many == 1 ) then
-                fkReference = pluralizeTableName(tbl.name)
-            elseif ( foreignKey.many == 0 ) then
-                fkReference = singularizeTableName(tbl.name)
-            else
-                fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
-            end
-            
-            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"            
+            relations = relations .. "      foreign: " .. renameIdColumns(foreignKey.referencedColumns[1].name) .. "\n"
+            relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n"
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -678,7 +629,7 @@ function generateYamlSchema(cat)
     local i, j, schema, tbl
     local yaml = "---\n"
     local optionsSetFlag = false
-
+    
     for i = 1, grtV.getn(cat.schemata) do
         schema = cat.schemata[i]
 
@@ -696,12 +647,12 @@ function generateYamlSchema(cat)
             if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
                 yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
             end
-            -- does not exist in WB yet (6.x?)
+            -- does not exist
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
 
             yaml = yaml .. "\n"
-
+            
             optionsSetFlag = true
         end
 
@@ -709,7 +660,7 @@ function generateYamlSchema(cat)
 
         for j = 1, grtV.getn(schema.tables) do
             tbl = schema.tables[j]
-
+            
             --
             -- do not export *_translation tables
             if ( string.endswith(tbl.name, "_translation") == false ) then
@@ -725,20 +676,20 @@ end
 
 function buildYamlForSingleColumn(tbl, col, yaml)
     local l, m
-
+    
     doctrineType = wbSimpleType2DoctrineDatatype(col)
     --
     -- start of adding a column
-    yaml = yaml.."    "..col.name..":\n"
+    yaml = yaml.."    "..renameIdColumns(col.name)..":\n"
     yaml = yaml.."      type: " .. doctrineType
-    if ( doctrineType == "enum" ) then
+    if( doctrineType == "enum" ) then
         -- enum handling
         yaml = yaml.."\n"
         yaml = yaml.."      values: ["
         yaml = yaml.. handleEnum(col)
         yaml = yaml.."]"
     end
-    if ( col.length ~= -1 ) then
+    if( col.length ~= -1 ) then
         yaml = yaml.. "(" ..col.length.. ")"
     end
     yaml = yaml.."\n"
@@ -746,10 +697,10 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         index = tbl.indices[m]
         --
         -- checking for primary index
-        if ( index.indexType == "PRIMARY" ) then
+        if( index.indexType == "PRIMARY") then
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                if ( column.referencedColumn.name == col.name ) then
+                if(column.referencedColumn.name == col.name) then
                     yaml = yaml .."      primary: true\n"
                 end
             end
@@ -757,32 +708,27 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         --
         -- checking for unique index
         if ( index.indexType == "UNIQUE" ) then
-            -- check if just one column in index
-            if ( grtV.getn(index.columns) == 1 ) then
-                for l = 1, grtV.getn(index.columns) do
-                    column = index.columns[l]
-                    if ( column.referencedColumn.name == col.name ) then
-                        yaml = yaml .. "      unique: true\n"
-                    end
+            for l = 1, grtV.getn(index.columns) do
+                column = index.columns[l]
+                if(column.referencedColumn.name == col.name) then
+                    yaml = yaml .. "      unique: true\n"
                 end
             end
         end
     end
     --
     -- setting flags
-    if ( col.flags ~= nil ) then
+    if( col.flags ~= nil ) then
         local flag
         for l = 1, grtV.getn(col.flags) do
             flag = grtV.toLua(col.flags[l])
-            if ( flag ~= nil ) then
+            if( flag ~= nil ) then
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
-                -- 
-                -- not implemented in Doctrine
-                -- if ( flag == "BINARY" ) then
-                --     yaml = yaml .. "      binary: true\n"
-                -- end
+                if ( flag == "BINARY" ) then
+                    yaml = yaml .. "      binary: true\n"
+                end
                 if ( flag == "ZEROFILL" ) then
                     yaml = yaml .. "      zerofill: true\n"
                 end
@@ -822,7 +768,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
     if ( col.simpleType ~= nil and col.simpleType.name == "CHAR" ) then
         yaml = yaml.."      fixed: true\n"
     end
-
+    
     return yaml
 end
 
@@ -839,20 +785,9 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --print(" <-> ")
     --print(pluralizeTableName(tbl.name))
 
-    --
-    -- add the real table name to the model
-    if ( buildTableName(tbl.name) ~= tbl.name and getCrossDatabaseJoinsFlag() ~= "on" ) then
-        yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
-    end
-
-    if ( getCrossDatabaseJoinsFlag() == "on" ) then
-        yaml = yaml .. "  tableName: " .. schema.name .. "." .. tbl.name .. "\n"
-        yaml = yaml .. "  connection: " .. schema.name .. "\n"
-    end
-
     -- check if table ends with _ns means
     -- NestedSet Model
-    if ( isNestedTableModel(tbl.name) ) then
+    if( isNestedTableModel(tbl.name) ) then
         actAsPart = actAsPart .. "    NestedSet:\n"
     end
 
@@ -871,13 +806,19 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     end
 
     --
+    -- add the real table name to the model
+    if ( buildTableName(tbl.name) ~= tbl.name ) then
+        yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
+    end
+
+    --
     -- iterate through the table columns
     yaml = yaml .. "  columns:\n"
     for k = 1, grtV.getn(tbl.columns) do
         col = tbl.columns[k]
         yaml = buildYamlForSingleColumn(tbl, col, yaml)
     end
-
+    
     --
     -- hack for adding columns outsourced
     -- to a *_translation table
@@ -891,7 +832,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             end
         end
     end
-
+    
     --
     -- add foreign keys
     yaml = yaml .. relationBuilding(tbl, schema.tables)
@@ -905,8 +846,8 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. column.referencedColumn.name
-                if ( l < grtV.getn(index.columns) ) then
+                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
+                if l < grtV.getn(index.columns) then
                     indexes = indexes .. ", "
                 end
             end
@@ -920,41 +861,16 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. column.referencedColumn.name
-                if ( l < grtV.getn(index.columns) ) then
+                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
+                if l < grtV.getn(index.columns) then
                     indexes = indexes .. ", "
                 end
             end
             indexes = indexes .. "]\n"
             indexes = indexes .. "      type: fulltext\n"
         end
-        if ( index.indexType == "UNIQUE" ) then
-            -- check if more than 1 column in index
-            -- otherwise ignore
-            if( grtV.getn(index.columns) > 1 ) then
-                indexes = indexes .. "    " .. index.name .. ":\n"
-                indexes = indexes .. "      fields:\n"
-                for l = 1, grtV.getn(index.columns) do
-                    column = index.columns[l]
-                    indexes = indexes .. "        " .. column.referencedColumn.name .. ":\n"
-                    -- check if column in index is ASC or DESC
-                    if ( column.descend ~= nil and column.descend ~= "" ) then
-                        if ( column.descend == 0 ) then
-                            indexes = indexes .. "          sorting: ASC\n"
-                        else
-                            indexes = indexes .. "          sorting: DESC\n"
-                        end
-                    end
-                    -- check for column length in index
-                    if ( column.columnLength ~= nil and column.columnLength ~= "" and column.columnLength ~= 0 ) then
-                        indexes = indexes .. "          length: " .. column.columnLength .. "\n"
-                    end
-                end
-                indexes = indexes .. "      type: unique\n"
-            end
-        end
     end
-    if ( indexes ~= "" ) then
+    if( indexes ~= "") then
         yaml = yaml .. "  indexes:\n" .. indexes
     end
     --
@@ -1001,15 +917,14 @@ function exportYamlSchemaToFile(catalog)
 
     --print("\nFilepath is: " .. file)
 
-    if (     file ~= nil
-         and io.open(file, "w")
-         and Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
+    if ( file ~= nil and
+         Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
 
         -- global
         doctrineExportPath = file
 
     else
-        doctrineExportPath = Workbench:input("Please enter a path to the file to export the doctrine schema to.", "param1", "param2", "param3", "param4")
+        doctrineExportPath = Workbench:input("Please enter a path to the file to export the doctrine schema to.")
 
         if ( doctrineExportPath ~= "" ) then
             -- Try to save the filepath for the next time:
