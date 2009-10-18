@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.9
+-- Version: 0.3.7
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,20 +59,6 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
--- 0.3.9 (KW)
---    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
---            a singular foreignAlias is created, if many is found a pluralized foreignAlias
---            is created
--- 0.3.8 (JM, KW)
---    + [add] added mapping of type YEAR -> integer(2)
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
---    + [fix] removed the renameIdColumns function that worked with the (bad) Workbench default
---            primary key and associative table naming conventions to be used with the Doctrine
---            "detect_relations" option
---            see the plugin Wiki page
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=11
---            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=15
---    + [fix] removed binary flag for columns -> not supported by doctrine
 -- 0.3.7 (KW, JM)
 --    + [fix] changed conversion of INTEGER from integer to integer(4)
 --    + [fix] changed conversion of BLOB types from clob(n) to blob(n)
@@ -219,7 +205,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.9",
+            version = "0.3.7",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -342,7 +328,6 @@ function wbSimpleType2DoctrineDatatype(column)
         ["TIME"]         = "time",
         ["DATETIME"]     = "timestamp",
         ["TIMESTAMP"]    = "timestamp",
-        ["YEAR"]         = "integer(2)",
         ["BOOL"]         = "boolean",
         ["BOOLEAN"]      = "boolean",
         ["BINARY"]       = "binary",      -- internally Doctrine seems to map binary to blob, which is wrong
@@ -426,6 +411,16 @@ end
 function underscoresToCamelCase(s)
    s = string.gsub(s, "_(%w)", function(v)
          return string.upper(v)
+       end)
+   return s
+end
+
+--
+-- rename idtable to id
+-- rename table_idtable to table_id
+function renameIdColumns(s)
+   s = string.gsub(s, "(id%w+)", function(v)
+         return "id"
        end)
    return s
 end
@@ -581,25 +576,13 @@ function relationBuilding(tbl, tables)
 
         -- check zero length
         if ( #foreignKey.columns > 0 ) then
-            relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
+            relations = relations .. "      local: " .. renameIdColumns(foreignKey.columns[1].name) .. "\n"
         end
 
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
-            relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-            
-            local fkReference = nil;
-            
-            -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
-            if ( foreignKey.many == 1 ) then
-                fkReference = pluralizeTableName(tbl.name)
-            elseif ( foreignKey.many == 0 ) then
-                fkReference = singularizeTableName(tbl.name)
-            else
-                fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
-            end
-            
-            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"            
+            relations = relations .. "      foreign: " .. renameIdColumns(foreignKey.referencedColumns[1].name) .. "\n"
+            relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n"
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -696,7 +679,7 @@ function generateYamlSchema(cat)
             if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
                 yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
             end
-            -- does not exist in WB yet (6.x?)
+            -- does not exist
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
 
@@ -729,7 +712,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
     doctrineType = wbSimpleType2DoctrineDatatype(col)
     --
     -- start of adding a column
-    yaml = yaml.."    "..col.name..":\n"
+    yaml = yaml.."    "..renameIdColumns(col.name)..":\n"
     yaml = yaml.."      type: " .. doctrineType
     if ( doctrineType == "enum" ) then
         -- enum handling
@@ -778,11 +761,9 @@ function buildYamlForSingleColumn(tbl, col, yaml)
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
-                -- 
-                -- not implemented in Doctrine
-                -- if ( flag == "BINARY" ) then
-                --     yaml = yaml .. "      binary: true\n"
-                -- end
+                if ( flag == "BINARY" ) then
+                    yaml = yaml .. "      binary: true\n"
+                end
                 if ( flag == "ZEROFILL" ) then
                     yaml = yaml .. "      zerofill: true\n"
                 end
@@ -905,7 +886,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. column.referencedColumn.name
+                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
                 if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
@@ -920,7 +901,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
             indexes = indexes .. "      fields: ["
             for l = 1, grtV.getn(index.columns) do
                 column = index.columns[l]
-                indexes = indexes .. column.referencedColumn.name
+                indexes = indexes .. renameIdColumns(column.referencedColumn.name)
                 if ( l < grtV.getn(index.columns) ) then
                     indexes = indexes .. ", "
                 end
@@ -936,7 +917,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
                 indexes = indexes .. "      fields:\n"
                 for l = 1, grtV.getn(index.columns) do
                     column = index.columns[l]
-                    indexes = indexes .. "        " .. column.referencedColumn.name .. ":\n"
+                    indexes = indexes .. "        " .. renameIdColumns(column.referencedColumn.name) .. ":\n"
                     -- check if column in index is ASC or DESC
                     if ( column.descend ~= nil and column.descend ~= "" ) then
                         if ( column.descend == 0 ) then
