@@ -590,7 +590,7 @@ function relationBuilding(tbl, tables)
                 tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
             end
 
-            relations = relations .. "    " .. tmp_name .. ":\n"
+            relations = relations .. "    " .. buildTableName(tmp_name) .. ":\n"
             relations = relations .. "      class: " .. buildTableName(foreignKey.referencedTable.name) .. "\n"
         else
             relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
