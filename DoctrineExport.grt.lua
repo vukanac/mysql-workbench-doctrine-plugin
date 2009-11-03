@@ -59,6 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [fix] changed export of foreign keys for doubled 1:n relations (e.g. Message -> Sender/Recipient)
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=18
 -- 0.3.9 (KW)
 --    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
 --            a singular foreignAlias is created, if many is found a pluralized foreignAlias
@@ -359,7 +361,7 @@ function wbSimpleType2DoctrineDatatype(column)
         ["LONGBLOB"]     = "blob",
         ["ENUM"]         = "enum"
     }
-    
+
     local typeName = nil
     local doctrineType = "unknown"
 
@@ -382,7 +384,7 @@ function wbSimpleType2DoctrineDatatype(column)
         -- expr and a or b is LUA ternary operator fake
         return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
     end
-    
+
     -- in case of a decimal type try to add precision and scale
     if ( doctrineType == "decimal" ) then
         if ( column.precision ~= nil and column.precision ~= -1 ) then
@@ -390,7 +392,7 @@ function wbSimpleType2DoctrineDatatype(column)
             doctrineType = doctrineType .. "(" .. column.precision
             -- append optional scale (only possible if precision is valid)
             if ( column.scale ~= nil and column.scale ~= -1 ) then
-                doctrineType = doctrineType .. "," .. column.scale 
+                doctrineType = doctrineType .. "," .. column.scale
             end
             -- close parentheses
             doctrineType = doctrineType .. ")"
@@ -572,12 +574,26 @@ function relationBuilding(tbl, tables)
     local i, k
     local foreignKey = nil
     local relations = "  relations:\n"
+    local tmp_name
 
     for k = 1, grtV.getn(tbl.foreignKeys) do
-
         foreignKey = tbl.foreignKeys[k]
 
-        relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
+        -- fix issue 18 (thx to MK)
+        -- relation is built on foreignKey name (enable you to have multiple reference
+        -- to same table like : sale -> company (supplier, customer))
+        if ( #foreignKey.columns > 0 ) then
+            tmp_name = buildTableName(foreignKey.columns[1].name)
+
+            if (string.endswith(tmp_name, "Id")) then
+                tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
+            end
+
+            relations = relations .. "    " .. tmp_name .. ":\n"
+            relations = relations .. "      class: " .. buildTableName(foreignKey.referencedTable.name) .. "\n"
+        else
+            relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
+        end
 
         -- check zero length
         if ( #foreignKey.columns > 0 ) then
@@ -587,9 +603,9 @@ function relationBuilding(tbl, tables)
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
             relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-            
+
             local fkReference = nil;
-            
+
             -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
             if ( foreignKey.many == 1 ) then
                 fkReference = pluralizeTableName(tbl.name)
@@ -598,8 +614,8 @@ function relationBuilding(tbl, tables)
             else
                 fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
             end
-            
-            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"            
+
+            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -778,7 +794,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
-                -- 
+                --
                 -- not implemented in Doctrine
                 -- if ( flag == "BINARY" ) then
                 --     yaml = yaml .. "      binary: true\n"
