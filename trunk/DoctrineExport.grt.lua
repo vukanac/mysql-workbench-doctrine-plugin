@@ -59,7 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
---    + [fix] changed export of foreign keys for doubled 1:n relations (e.g. Message -> Sender/Recipient)
+--    + [fix] changed export of foreign keys for doubled 1:n relations
+--            (e.g. Message -> Sender/Recipient) thanks to Mickael Kurmann for the code snippet
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=18
 -- 0.3.9 (KW)
 --    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
