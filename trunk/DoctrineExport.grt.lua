@@ -59,6 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [fix] charset and collate does not work with global options definition
+--            changed to work within table focus
 --    + [fix] changed export of foreign keys for doubled 1:n relations
 --            (e.g. Message -> Sender/Recipient) thanks to Mickael Kurmann for the code snippet
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=18
@@ -707,12 +709,12 @@ function generateYamlSchema(cat)
             --
             -- set basic options
             yaml = yaml .. "options:\n"
-            if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
-                yaml = yaml .. "  collation: " .. schema.defaultCollationName .. "\n"
-            end
-            if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
-                yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
-            end
+            --if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+            --    yaml = yaml .. "  collation: " .. schema.defaultCollationName .. "\n"
+            --end
+            --if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+            --    yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
+            --end
             -- does not exist in WB yet (6.x?)
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
@@ -977,15 +979,23 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --
     -- add the options
     local options = ""
+
     if ( tbl.defaultCharacterSetName ~= nil and tbl.defaultCharacterSetName ~= "" ) then
         options = options .. "    charset: " .. tbl.defaultCharacterSetName .. "\n"
+    else if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+        options = options .. "    charset: " .. schema.defaultCharacterSetName .. "\n"
     end
+
     if ( tbl.defaultCollationName ~= nil and tbl.defaultCollationName ~= "" ) then
         options = options .. "    collate: " .. tbl.defaultCollationName .. "\n"
+    else if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+        options = options .. "    collate: " .. schema.defaultCollationName .. "\n"
     end
+
     if ( tbl.tableEngine ~= nil and tbl.tableEngine ~= "" ) then
         options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
+
     if ( options ~= "" ) then
         yaml = yaml .. "  options:\n" .. options
     end
