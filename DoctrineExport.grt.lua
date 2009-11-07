@@ -982,13 +982,13 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     if ( tbl.defaultCharacterSetName ~= nil and tbl.defaultCharacterSetName ~= "" ) then
         options = options .. "    charset: " .. tbl.defaultCharacterSetName .. "\n"
-    else if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+    elseif ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
         options = options .. "    charset: " .. schema.defaultCharacterSetName .. "\n"
     end
 
     if ( tbl.defaultCollationName ~= nil and tbl.defaultCollationName ~= "" ) then
         options = options .. "    collate: " .. tbl.defaultCollationName .. "\n"
-    else if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+    elseif ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
         options = options .. "    collate: " .. schema.defaultCollationName .. "\n"
     end
 
