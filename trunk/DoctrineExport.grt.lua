@@ -59,6 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [add] doctrine behaviours for Workbench table models
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToAddDoctrineBehavioursToTheWorkbenchModel
 --    + [fix] charset and collate does not work with global options definition
 --            changed to work within table focus
 --    + [fix] changed export of foreign keys for doubled 1:n relations
@@ -642,6 +644,22 @@ function relationBuilding(tbl, tables)
 end
 
 --
+-- extract informations regarding doctrine
+-- from table comments in workbench model
+-- comment like {doctrine:actAs} [..] {/doctrine:actAs}
+function getInfoFromTableComment(c, info)
+  tmp = string.gsub(c, ".*{doctrine:" .. info .. "}(.+){/doctrine:" .. info .. "}.*", function(v)
+            return string.gsub(v, "^[\r\n]*(.+)", function(x)
+                return string.gsub(x, "[\r\n]*$", "")
+              end)
+          end)
+  if ( tmp == c ) then
+    return nil
+  end
+  return tmp
+end
+
+--
 -- check for *_translation table
 -- related to I18n Support in doctrine
 function hasTranslationTableModel(tblname, tables)
@@ -848,10 +866,19 @@ end
 function buildYamlForSingleTable(tbl, schema, yaml)
     local k, l, col, index, column
     local actAsPart = ""
+    local actAs = ""
 
     --
     -- start of adding a table
     yaml = yaml .. buildTableName(tbl.name) .. ":\n"
+    
+    -- check for actAs: in table comments
+    if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
+      actAs = getInfoFromTableComment(tbl.comment, "actAs")
+      if ( actAs ~= "" ) then
+        yaml = yaml .. actAs .. "\n"
+      end
+    end
 
     -- test singularize and pluralize functions
     --print("\n" .. singularizeTableName(tbl.name))
