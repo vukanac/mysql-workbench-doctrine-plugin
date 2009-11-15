@@ -1,3 +1,5 @@
+#summary This page shows you how you should prepare the Workbench application before using it with the plugin
+
 = How to prepare MySQL Workbench for use with the Doctrine plugin =
 
 Please read the following section carefully, because this may be important for you.
