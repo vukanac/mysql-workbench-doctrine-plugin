@@ -59,7 +59,7 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
---    + [add] doctrine behaviours for Workbench table models
+--    + [add] support of doctrine behaviours via table comments
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToAddDoctrineBehavioursToTheWorkbenchModel
 --    + [fix] charset and collate does not work with global options definition
 --            changed to work within table focus
@@ -875,7 +875,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     -- check for actAs: in table comments
     if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
       actAs = getInfoFromTableComment(tbl.comment, "actAs")
-      if ( actAs ~= "" ) then
+      if ( actAs ~= "" and actAs ~= nil ) then
         yaml = yaml .. actAs .. "\n"
       end
     end
