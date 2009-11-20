@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.5.0pre
+-- Version: 0.4.0
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,15 +59,23 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
--- ************************************
--- ** THIS VERSION IS NOT FUNCTIONAL **
--- ** DO NOT USE THIS VERSION        **
--- ************************************
--- 0.5.0pre (KW,JM)
---    + [add] Helper class
---    + [add] Yml class
---    + [add] Config class
--- [..]
+-- 0.4.0 (JM)
+--    + [add] support for
+--              doctrine:foreignAliasOne,
+--              doctrine:foreignAliasMany and
+--              doctrine:foreignAlias fallback
+--            on table comments for custom relation naming
+--    + [add] support of doctrine behaviours via table comments
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToAddDoctrineBehavioursToTheWorkbenchModel
+--    + [fix] charset and collate does not work with global options definition
+--            changed to work within table focus
+--    + [fix] changed export of foreign keys for doubled 1:n relations
+--            (e.g. Message -> Sender/Recipient) thanks to Mickael Kurmann for the code snippet
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=18
+-- 0.3.9 (KW)
+--    + [imp] foreignAliases now considering the cardinality one or many. if one is found,
+--            a singular foreignAlias is created, if many is found a pluralized foreignAlias
+--            is created
 -- 0.3.8 (JM, KW)
 --    + [add] added mapping of type YEAR -> integer(2)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=12
@@ -224,7 +232,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.5.0pre",
+            version = "0.4.0",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -314,132 +322,10 @@ end
 -- ##    change from here    ##
 -- ############################
 
--- declare Config class
-Config = {
-    enableCrossDatabaseJoins           = false,     -- default false| true (for further information see blog post on
-                                                    -- http://www.doctrine-project.org/blog/cross-database-joins )
-    defaultStorageEngine               = "InnoDB",  -- default InnoDB|MyISAM
-    enableStorageEngineOverride        = false,     -- default false|true
-    enableOptionsHeader                = true,      -- default true|false (enable header output)
-    enableRenameIdColumns              = true,      -- default true|false (detect_relations feature of doctrine)
-    enableRenameUnderscoresToCamelcase = true,      -- default true|false (enable table_name -> tableName)
-    enableRecapitalizeTableNames       = "first",   -- default first|all|none
-    enableSingularPluralization        = true,      -- default true|false
-    enableDoctrine20support            = false      -- default true|false
-}
-
 --
 -- Print some version information and copyright to the output window
 function printVersion()
     print("\n\n\nDoctrine Export v" .. getModuleInfo().version .. "\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
-end
-
---
--- declare Helper class
-Helper = {}
-
---
--- helper for adding spaces depending
--- on indentation level
--- default 2 spaces per level
-function Helper.getSpacesByLevel(indentLevel)
-    return string.rep(" ", indentLevel * 2)
-end
-
---
--- declare Yml class
-Yml    = {}
-Yml_mt = {}
-Yml_mt.__index = Yml
-
---
--- Yml class constructor
-function Yml:init()
-    yml = {
-        yaml = ""
-    }
-    setmetatable(yml, Yml_mt)
-	return yml
-end
-
-function Yml.writeHeaderSection(self)
-    self:appendLine(0, "---")
-    self:appendLine(0, "")
-
-    -- adds a header of copyright and other informations
-    -- to the top of the yaml text
-    self:appendComment("build with MySQL Workbench Doctrine Plugin " .. getModuleInfo().version )
-    self:appendComment("for more information visit")
-    self:appendComment("http://code.google.com/p/mysql-workbench-doctrine-plugin/")
-    self:appendComment("")
-
-    -- adds the date of workbench export
-    self:appendComment("generated on: " .. os.date("%x"))
-
-    -- adds an empty line after header
-    self:appendLine(0, "")
-
-    -- adds a header to the yaml
-    if ( Config.enableOptionsHeader ) then
-
-        -- enable automatic detection of relations by doctrine
-        self:appendLine(0, "detect_relations: true")
-
-        -- set basic options
-        self:appendLine(0, "options:")
-
-        -- adds the default collation
-        if ( self.scheme.defaultCollationName ~= nil and self.scheme.defaultCollationName ~= "" ) then
-            self:appendLine(1, "collation: " .. self.scheme.defaultCollationName)
-        end
-
-        -- adds the default character set
-        if ( self.scheme.defaultCharacterSetName ~= nil and self.scheme.defaultCharacterSetName ~= "" ) then
-            self:appendLine(1, "charset: " .. self.scheme.defaultCharacterSetName)
-        end
-
-        -- adds the default storage engine specified in config object in head of yaml file
-        self:appendLine(1, "type: " .. Config.defaultStorageEngine)
-
-        -- adds an empty line after header
-        self:appendLine(0, "")
-    end
-end
-
---
--- sets database schema
-function Yml.setSchema(self, schema)
-    self.scheme = schema
-end
-
---
--- appends a given text to the yaml text
-function Yml.append(self, text)
-    self.yaml = self.yaml .. text
-end
-
---
--- appends a given line to yaml text
-function Yml.appendLine(self, indentLevel, text)
-    self.yaml = self.yaml .. Helper.getSpacesByLevel(indentLevel) .. text .. "\n"
-end
-
---
--- appends comment to yaml text
-function Yml.appendComment(self, comment)
-    self:appendLine(0, "# " .. comment)
-end
-
---
--- returns yaml text
-function Yml.getYaml(self)
-    return self.yaml
-end
-
---
--- appends yaml of a given yaml object
-function Yml.embedYml(self, yamlObject)
-    self:append(yamlObject:getYaml())
 end
 
 --
@@ -529,7 +415,7 @@ end
 
 --
 -- handle enums for doctrine
-function Helper.handleEnum(column)
+function handleEnum(column)
     if ( column.datatypeExplicitParams ~= nil ) then
         local s = column.datatypeExplicitParams
         s = string.sub(s, 2, #s - 1)
@@ -543,6 +429,9 @@ end
 function ucfirst(s)
     -- only capitalize the very first char, leave all others untouched
     return string.upper(string.sub(s, 0, 1)) .. string.sub(s, 2, #s)
+
+    -- old: lowers rest for whatever reason
+    --return string.upper(string.sub(s, 0, 1)) .. string.lower(string.sub(s, 2, #s))
 end
 
 --
@@ -696,12 +585,36 @@ function relationBuilding(tbl, tables)
     local i, k
     local foreignKey = nil
     local relations = "  relations:\n"
+    local tmp_name
 
     for k = 1, grtV.getn(tbl.foreignKeys) do
-
         foreignKey = tbl.foreignKeys[k]
 
-        relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
+        -- fix issue 18 (thx to MK)
+        -- relation is built on foreignKey name (enable you to have multiple reference
+        -- to same table like : sale -> company (supplier, customer))
+        if ( #foreignKey.columns > 0 ) then
+            tmp_name = buildTableName(foreignKey.columns[1].name)
+
+            if (string.endswith(tmp_name, "Id")) then
+                tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
+            end
+
+            -- check for a special name for the relation
+            -- see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=19
+            -- for more information
+            local relName = nil
+            relName = getInfoFromTableComment(foreignKey.referencedTable.comment, "foreignAliasOne")
+            if( relName ~= nil and relName ~= "" ) then
+              relations = relations .. "    " .. relName .. ":\n"
+            else
+              relations = relations .. "    " .. buildTableName(tmp_name) .. ":\n"
+            end
+
+            relations = relations .. "      class: " .. buildTableName(foreignKey.referencedTable.name) .. "\n"
+        else
+            relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
+        end
 
         -- check zero length
         if ( #foreignKey.columns > 0 ) then
@@ -711,8 +624,31 @@ function relationBuilding(tbl, tables)
         -- check zero length
         if ( #foreignKey.referencedColumns > 0 ) then
             relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-            -- relations = relations .. "      foreignAlias: " .. pluralizeTableName(buildTableName(tbl.name)) .. "\n" -- old... and wrong?
-            relations = relations .. "      foreignAlias: " .. tbl.name .. "\n" -- new: always take original table name
+
+            local fkReference = nil;
+
+            -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
+            if ( foreignKey.many == 1 ) then
+                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasMany")
+                if ( fkReference == nil or fkReference == "" ) then
+                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
+                  if ( fkReference == nil or fkReference == "" ) then
+                    fkReference = pluralizeTableName(tbl.name)
+                  end
+                end
+            elseif ( foreignKey.many == 0 ) then
+                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasOne")
+                if ( fkReference == nil or fkReference == "" ) then
+                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
+                  if ( fkReference == nil or fkReference == "" ) then
+                    fkReference = pluralizeTableName(tbl.name)
+                  end
+                end
+            else
+                fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
+            end
+
+            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"
         end
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
@@ -736,15 +672,30 @@ function relationBuilding(tbl, tables)
 end
 
 --
+-- extract informations regarding doctrine
+-- from table comments in workbench model
+-- comment like {doctrine:actAs} [..] {/doctrine:actAs}
+function getInfoFromTableComment(c, info)
+  local tmp
+  tmp = string.gsub(c, ".*{doctrine:" .. info .. "}(.+){/doctrine:" .. info .. "}.*", function(v)
+            return string.gsub(v, "^[\r\n]*(.+)", function(x)
+                return string.gsub(x, "[\r\n]*$", "")
+              end)
+          end)
+  if ( tmp == c ) then
+    return nil
+  end
+  return tmp
+end
+
+--
 -- check for *_translation table
 -- related to I18n Support in doctrine
 function hasTranslationTableModel(tblname, tables)
-    local k
-    tblname = tblname .. "_translation"
-    for k = 1, grtV.getn(tables) do
-        if ( tblname == tables[k].name ) then
-            return true
-        end
+    local tmp
+    tmp = getTranslationTableModel(tblname, tables)
+    if ( tmp ~= nil ) then
+      return true
     end
     return false
 end
@@ -753,13 +704,18 @@ end
 -- returns a reference of the translation table
 -- by given table name
 function getTranslationTableModel(tblname, tables)
-    local k
     tblname = tblname .. "_translation"
+    return getTableModel(tblname, tables)
+end
+
+function getTableModel(tblname, tables)
+    local k
     for k = 1, grtV.getn(tables) do
         if ( tblname == tables[k].name ) then
             return tables[k]
         end
     end
+    return nil
 end
 
 --
@@ -809,7 +765,7 @@ function generateYamlSchema(cat)
             if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
                 yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
             end
-            -- does not exist
+            -- does not exist in WB yet (6.x?)
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
 
@@ -848,7 +804,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
         -- enum handling
         yaml = yaml.."\n"
         yaml = yaml.."      values: ["
-        yaml = yaml.. Helper.handleEnum(col)
+        yaml = yaml.. handleEnum(col)
         yaml = yaml.."]"
     end
     if ( col.length ~= -1 ) then
@@ -891,7 +847,7 @@ function buildYamlForSingleColumn(tbl, col, yaml)
                 if ( flag == "UNSIGNED" ) then
                     yaml = yaml .. "      unsigned: true\n"
                 end
-                -- 
+                --
                 -- not implemented in Doctrine
                 -- if ( flag == "BINARY" ) then
                 --     yaml = yaml .. "      binary: true\n"
@@ -942,11 +898,19 @@ end
 function buildYamlForSingleTable(tbl, schema, yaml)
     local k, l, col, index, column
     local actAsPart = ""
+    local actAs = ""
 
     --
     -- start of adding a table
-    -- Yml:appendLine(0, buildTableName(tbl.name))
     yaml = yaml .. buildTableName(tbl.name) .. ":\n"
+
+    -- check for actAs: in table comments
+    if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
+      actAs = getInfoFromTableComment(tbl.comment, "actAs")
+      if ( actAs ~= "" and actAs ~= nil ) then
+        yaml = yaml .. actAs .. "\n"
+      end
+    end
 
     -- test singularize and pluralize functions
     --print("\n" .. singularizeTableName(tbl.name))
@@ -955,14 +919,11 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     --
     -- add the real table name to the model
-    if ( buildTableName(tbl.name) ~= tbl.name and Config.enableCrossDatabaseJoins ~= "on" ) then
-        -- Yml:appendLine(1, "tableName: " .. tbl.name)
+    if ( buildTableName(tbl.name) ~= tbl.name and getCrossDatabaseJoinsFlag() ~= "on" ) then
         yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
     end
 
-    if ( Config.enableCrossDatabaseJoins == "on" ) then
-        -- Yml:appendLine(1, "tableName: " .. schema.name .. "." .. tbl.name)
-        -- Yml:appendLine(1, connection: " .. schema.name)
+    if ( getCrossDatabaseJoinsFlag() == "on" ) then
         yaml = yaml .. "  tableName: " .. schema.name .. "." .. tbl.name .. "\n"
         yaml = yaml .. "  connection: " .. schema.name .. "\n"
     end
@@ -1077,15 +1038,23 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --
     -- add the options
     local options = ""
+
     if ( tbl.defaultCharacterSetName ~= nil and tbl.defaultCharacterSetName ~= "" ) then
         options = options .. "    charset: " .. tbl.defaultCharacterSetName .. "\n"
+    elseif ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+        options = options .. "    charset: " .. schema.defaultCharacterSetName .. "\n"
     end
+
     if ( tbl.defaultCollationName ~= nil and tbl.defaultCollationName ~= "" ) then
         options = options .. "    collate: " .. tbl.defaultCollationName .. "\n"
+    elseif ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+        options = options .. "    collate: " .. schema.defaultCollationName .. "\n"
     end
+
     if ( tbl.tableEngine ~= nil and tbl.tableEngine ~= "" ) then
         options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
+
     if ( options ~= "" ) then
         yaml = yaml .. "  options:\n" .. options
     end
