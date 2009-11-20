@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.3.9
+-- Version: 0.4.0
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,12 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.4.0 (JM)
+--    + [add] support for
+--              doctrine:foreignAliasOne,
+--              doctrine:foreignAliasMany and
+--              doctrine:foreignAlias fallback
+--            on table comments for custom relation naming
 --    + [add] support of doctrine behaviours via table comments
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToAddDoctrineBehavioursToTheWorkbenchModel
 --    + [fix] charset and collate does not work with global options definition
@@ -226,7 +232,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.3.9",
+            version = "0.4.0",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -594,7 +600,17 @@ function relationBuilding(tbl, tables)
                 tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
             end
 
-            relations = relations .. "    " .. buildTableName(tmp_name) .. ":\n"
+            -- check for a special name for the relation
+            -- see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=19
+            -- for more information
+            local relName = nil
+            relName = getInfoFromTableComment(foreignKey.referencedTable.comment, "foreignAliasOne")
+            if( relName ~= nil and relName ~= "" ) then
+              relations = relations .. "    " .. relName .. ":\n"
+            else
+              relations = relations .. "    " .. buildTableName(tmp_name) .. ":\n"
+            end
+
             relations = relations .. "      class: " .. buildTableName(foreignKey.referencedTable.name) .. "\n"
         else
             relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
@@ -613,9 +629,21 @@ function relationBuilding(tbl, tables)
 
             -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
             if ( foreignKey.many == 1 ) then
-                fkReference = pluralizeTableName(tbl.name)
+                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasMany")
+                if ( fkReference == nil or fkReference == "" ) then
+                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
+                  if ( fkReference == nil or fkReference == "" ) then
+                    fkReference = pluralizeTableName(tbl.name)
+                  end
+                end
             elseif ( foreignKey.many == 0 ) then
-                fkReference = singularizeTableName(tbl.name)
+                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasOne")
+                if ( fkReference == nil or fkReference == "" ) then
+                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
+                  if ( fkReference == nil or fkReference == "" ) then
+                    fkReference = pluralizeTableName(tbl.name)
+                  end
+                end
             else
                 fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
             end
@@ -648,6 +676,7 @@ end
 -- from table comments in workbench model
 -- comment like {doctrine:actAs} [..] {/doctrine:actAs}
 function getInfoFromTableComment(c, info)
+  local tmp
   tmp = string.gsub(c, ".*{doctrine:" .. info .. "}(.+){/doctrine:" .. info .. "}.*", function(v)
             return string.gsub(v, "^[\r\n]*(.+)", function(x)
                 return string.gsub(x, "[\r\n]*$", "")
@@ -663,12 +692,10 @@ end
 -- check for *_translation table
 -- related to I18n Support in doctrine
 function hasTranslationTableModel(tblname, tables)
-    local k
-    tblname = tblname .. "_translation"
-    for k = 1, grtV.getn(tables) do
-        if ( tblname == tables[k].name ) then
-            return true
-        end
+    local tmp
+    tmp = getTranslationTableModel(tblname, tables)
+    if ( tmp ~= nil ) then
+      return true
     end
     return false
 end
@@ -677,13 +704,18 @@ end
 -- returns a reference of the translation table
 -- by given table name
 function getTranslationTableModel(tblname, tables)
-    local k
     tblname = tblname .. "_translation"
+    return getTableModel(tblname, tables)
+end
+
+function getTableModel(tblname, tables)
+    local k
     for k = 1, grtV.getn(tables) do
         if ( tblname == tables[k].name ) then
             return tables[k]
         end
     end
+    return nil
 end
 
 --
@@ -871,7 +903,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --
     -- start of adding a table
     yaml = yaml .. buildTableName(tbl.name) .. ":\n"
-    
+
     -- check for actAs: in table comments
     if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
       actAs = getInfoFromTableComment(tbl.comment, "actAs")
