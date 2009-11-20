@@ -759,12 +759,12 @@ function generateYamlSchema(cat)
             --
             -- set basic options
             yaml = yaml .. "options:\n"
-            --if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
-            --    yaml = yaml .. "  collation: " .. schema.defaultCollationName .. "\n"
-            --end
-            --if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
-            --    yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
-            --end
+            if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+                yaml = yaml .. "  collation: " .. schema.defaultCollationName .. "\n"
+            end
+            if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+                yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
+            end
             -- does not exist in WB yet (6.x?)
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
             yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
