@@ -945,6 +945,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     --
     -- start of adding a table
+    -- Yml:appendLine(0, buildTableName(tbl.name))
     yaml = yaml .. buildTableName(tbl.name) .. ":\n"
 
     -- test singularize and pluralize functions
@@ -954,11 +955,14 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     --
     -- add the real table name to the model
-    if ( buildTableName(tbl.name) ~= tbl.name and getCrossDatabaseJoinsFlag() ~= "on" ) then
+    if ( buildTableName(tbl.name) ~= tbl.name and Config.enableCrossDatabaseJoins ~= "on" ) then
+        -- Yml:appendLine(1, "tableName: " .. tbl.name)
         yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
     end
 
-    if ( getCrossDatabaseJoinsFlag() == "on" ) then
+    if ( Config.enableCrossDatabaseJoins == "on" ) then
+        -- Yml:appendLine(1, "tableName: " .. schema.name .. "." .. tbl.name)
+        -- Yml:appendLine(1, connection: " .. schema.name)
         yaml = yaml .. "  tableName: " .. schema.name .. "." .. tbl.name .. "\n"
         yaml = yaml .. "  connection: " .. schema.name .. "\n"
     end
