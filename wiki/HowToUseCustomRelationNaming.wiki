@@ -59,9 +59,9 @@ the PHP result in doctrine model definition
 $this->hasMany('user as customers', .. );
 }}}
 
-=== foreignAlias - Fallback ===
+=== foreignAlias ===
 
-and here is an additional fallback solution if you want to use the same for singular and plural, e.g. "staff" but this saves only some chars and real world examples are rare
+and here is an additional fallback solution if you want to use the _same for singular and plural_, e.g. "staff" but this saves only some chars and real world examples are rare
 {{{
 {doctrine:foreignAlias}
 staff
