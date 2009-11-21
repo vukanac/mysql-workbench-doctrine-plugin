@@ -1,0 +1,16 @@
+#summary Here you may find useful links
+
+= Introduction =
+
+If you want to know more about doctrine, the plugin or the usage, we collect some links. Please feel free to send us new ones.
+
+
+= Details =
+
+=== Official ===
+  * [http://symfony-project.org symfony project]
+  * [http://doctrine-project.org doctrine project]
+  * [http://dev.mysql.com/workbench MySQL Workbench project]
+
+=== Blog Posts ===
+  * [http://www.bernawebdesign.ch/byteblog/2009/09/17/adapting-doctrineexport-grt-lua-to-symfony-standards/ Blog post about tweaking the naming conventions of the plugin]
