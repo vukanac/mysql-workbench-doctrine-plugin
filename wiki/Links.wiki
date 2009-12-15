@@ -14,3 +14,4 @@ If you want to know more about doctrine, the plugin or the usage, we collect som
 
 === Blog Posts ===
   * [http://www.bernawebdesign.ch/byteblog/2009/09/17/adapting-doctrineexport-grt-lua-to-symfony-standards/ Blog post about tweaking the naming conventions of the plugin]
+  * [http://technotes.steudel.org/2009/12/how-to-generate-yaml-files-for-doctrine-using-mysql-workbench/ Step-By-Step blog post]
