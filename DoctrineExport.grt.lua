@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.4.0
+-- Version: 0.4.1beta
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [fix] fixed scale issue with decimal type
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=22
 -- 0.4.0 (JM)
 --    + [add] support for
 --              doctrine:foreignAliasOne,
@@ -232,7 +234,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.4.0",
+            version = "0.4.1beta",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -400,13 +402,13 @@ function wbSimpleType2DoctrineDatatype(column)
     if ( doctrineType == "decimal" ) then
         if ( column.precision ~= nil and column.precision ~= -1 ) then
             -- append precision in any case
-            doctrineType = doctrineType .. "(" .. column.precision
+            doctrineType = doctrineType .. "(" .. column.precision .. ")\n"
             -- append optional scale (only possible if precision is valid)
             if ( column.scale ~= nil and column.scale ~= -1 ) then
-                doctrineType = doctrineType .. "," .. column.scale
+                doctrineType = doctrineType .. "      scale: " .. column.scale
             end
             -- close parentheses
-            doctrineType = doctrineType .. ")"
+            -- doctrineType = doctrineType .. ")"
         end
     end
 
