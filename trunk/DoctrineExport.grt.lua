@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.4.1beta
+-- Version: 0.4.1dev
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [fix] global setting of collation
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=23
 --    + [fix] fixed scale issue with decimal type
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=22
 -- 0.4.0 (JM)
@@ -234,7 +236,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.4.1beta",
+            version = "0.4.1dev",
 
             -- interface implemented by this module
             implements = "PluginInterface",
@@ -762,7 +764,7 @@ function generateYamlSchema(cat)
             -- set basic options
             yaml = yaml .. "options:\n"
             if ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
-                yaml = yaml .. "  collation: " .. schema.defaultCollationName .. "\n"
+                yaml = yaml .. "  collate: " .. schema.defaultCollationName .. "\n"
             end
             if ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
                 yaml = yaml .. "  charset: " .. schema.defaultCharacterSetName .. "\n"
