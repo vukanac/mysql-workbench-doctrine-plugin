@@ -59,6 +59,7 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+--    + [imp] export collation, charset and storage type on table level only if explicitly set
 --    + [fix] global setting of collation
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=23
 --    + [fix] fixed scale issue with decimal type
@@ -1045,17 +1046,20 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     if ( tbl.defaultCharacterSetName ~= nil and tbl.defaultCharacterSetName ~= "" ) then
         options = options .. "    charset: " .. tbl.defaultCharacterSetName .. "\n"
-    elseif ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
-        options = options .. "    charset: " .. schema.defaultCharacterSetName .. "\n"
+    --elseif ( schema.defaultCharacterSetName ~= nil and schema.defaultCharacterSetName ~= "" ) then
+    --    options = options .. "    charset: " .. schema.defaultCharacterSetName .. "\n"
     end
 
     if ( tbl.defaultCollationName ~= nil and tbl.defaultCollationName ~= "" ) then
         options = options .. "    collate: " .. tbl.defaultCollationName .. "\n"
-    elseif ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
-        options = options .. "    collate: " .. schema.defaultCollationName .. "\n"
+    --elseif ( schema.defaultCollationName ~= nil and schema.defaultCollationName ~= "" ) then
+    --    options = options .. "    collate: " .. schema.defaultCollationName .. "\n"
     end
 
-    if ( tbl.tableEngine ~= nil and tbl.tableEngine ~= "" ) then
+    -- set table engine only if other than global definition of InnoDB
+    if (     tbl.tableEngine ~= nil
+         and tbl.tableEngine ~= ""
+         and tbl.tableEngine ~= "InnoDB" ) then
         options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
 
