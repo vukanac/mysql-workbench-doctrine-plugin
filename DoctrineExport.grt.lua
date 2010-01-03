@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.4.1
+-- Version: 0.4.2dev
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -238,7 +238,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.4.1",
+            version = "0.4.2dev",
 
             -- interface implemented by this module
             implements = "PluginInterface",
