@@ -1,6 +1,6 @@
 --
 -- MySQL Workbench Doctrine Export Plugin
--- Version: 0.4.1dev
+-- Version: 0.4.1
 -- Authors: Johannes Mueller, Karsten Wutzke
 -- Copyright (c) 2008-2009
 --
@@ -59,6 +59,7 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.4.1 (JM)
 --    + [imp] export collation, charset and storage type on table level only if explicitly set
 --    + [fix] global setting of collation
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=23
@@ -237,7 +238,7 @@ function getModuleInfo()
             author = "various",
 
             --module version
-            version = "0.4.1dev",
+            version = "0.4.1",
 
             -- interface implemented by this module
             implements = "PluginInterface",
