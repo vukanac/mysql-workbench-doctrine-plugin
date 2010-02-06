@@ -1,4 +1,4 @@
-#summary One-sentence summary of this page.
+#summary read how you can use the config options
 
 = Introduction =
 
