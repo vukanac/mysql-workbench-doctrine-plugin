@@ -2,7 +2,7 @@
 -- MySQL Workbench Doctrine Export Plugin
 -- Version: 0.4.2dev
 -- Authors: Johannes Mueller, Karsten Wutzke
--- Copyright (c) 2008-2009
+-- Copyright (c) 2008-2010
 --
 -- http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
@@ -341,6 +341,19 @@ function module_exists(module)
     return pcall(require, module)
 end
 
+--
+-- function to merge tables
+function mergeTables(t1, t2)
+  local r = {}
+  for k, v in pairs(t1) do
+    r[k] = v
+  end
+  for k, v in pairs(t2) do
+    r[k] = v
+  end
+  return r
+end
+
 -- helper function to load
 -- config
 function loadConfig()
@@ -352,25 +365,31 @@ function loadConfig()
       require "modules.doctrinePluginConfig"
       print("external config loaded\n\n")
      -- _G.config = modules.doctrinePluginConfig.Config
+    end
+    
+    -- #############################
+    -- ##  CUSTOM CONFIG OPTIONS  ##
+    -- #############################
+    _G.locConfig = {
+      enableCrossDatabaseJoins            = false    -- default false| true (for further information see blog post on
+                                                     -- http://www.doctrine-project.org/blog/cross-database-joins )
+      ,defaultStorageEngine               = "InnoDB" -- default InnoDB|MyISAM
+      ,enableStorageEngineOverride        = false    -- default false|true
+      ,enableOptionsHeader                = true     -- default true|false (enable header output)
+      ,enableRenameIdColumns              = true     -- default true|false (detect_relations feature of doctrine)
+      ,enableRenameUnderscoresToCamelcase = true     -- default true|false (enable table_name -> tableName)
+      ,enableRecapitalizeTableNames       = "first"  -- default first|all|none
+      ,enableSingularPluralization        = true     -- default true|false
+      ,enableShortFormatting              = false    -- default false|true
+      ,preventTableRenaming               = false    -- default false|true
+      ,preventTableRenamingPrefix         = "col_"   -- default "col_"
+    }
+    print("local config loaded\n\n")
+    
+    if ( extConfig ~= nil ) then
+      _G.config = mergeTables(locConfig, extConfig)
     else
-      -- #############################
-      -- ##  CUSTOM CONFIG OPTIONS  ##
-      -- #############################
-      _G.config = {
-        enableCrossDatabaseJoins            = false    -- default false| true (for further information see blog post on
-                                                       -- http://www.doctrine-project.org/blog/cross-database-joins )
-        ,defaultStorageEngine               = "InnoDB" -- default InnoDB|MyISAM
-        ,enableStorageEngineOverride        = false    -- default false|true
-        ,enableOptionsHeader                = true     -- default true|false (enable header output)
-        ,enableRenameIdColumns              = true     -- default true|false (detect_relations feature of doctrine)
-        ,enableRenameUnderscoresToCamelcase = true     -- default true|false (enable table_name -> tableName)
-        ,enableRecapitalizeTableNames       = "first"  -- default first|all|none
-        ,enableSingularPluralization        = true     -- default true|false
-        ,enableShortFormatting              = false    -- default false|true
-        ,preventTableRenaming               = false    -- default false|true
-        ,preventTableRenamingPrefix         = "col_"   -- default "col_"
-      }
-      print("local config loaded\n\n")
+      _G.config = locConfig
     end
 end
 
