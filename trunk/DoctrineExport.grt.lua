@@ -59,6 +59,12 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
+-- 0.4.2dev (JM)
+--    + [add] optional separate config file
+--    + [imp] added more custom options (CUSTOM CONFIG OPTIONS)
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToUseConfigOptions
+--    + [imp] changed behavior of casting userTypes
+--            see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=27
 -- 0.4.1 (JM)
 --    + [imp] export collation, charset and storage type on table level only if explicitly set
 --    + [fix] global setting of collation
@@ -329,9 +335,50 @@ end
 -- ############################
 
 --
+-- helper function to check whether
+-- a module is loadable
+function module_exists(module)
+    return pcall(require, module)
+end
+
+-- helper function to load
+-- config
+function loadConfig()
+    -- load optional configuration file
+    -- %PROGRAMFILES%\MySQL\MySQL Workbench xx\modules\doctrinePluginConfig.lua
+    -- appdataDir = os.getenv('APPDATA')
+    -- package.path(appdataDir .. '/MySQL/Workbench/')
+    if( module_exists("modules.doctrinePluginConfig") ~= false ) then
+      require "modules.doctrinePluginConfig"
+      print("external config loaded\n\n")
+     -- _G.config = modules.doctrinePluginConfig.Config
+    else
+      -- #############################
+      -- ##  CUSTOM CONFIG OPTIONS  ##
+      -- #############################
+      _G.config = {
+        enableCrossDatabaseJoins            = false    -- default false| true (for further information see blog post on
+                                                       -- http://www.doctrine-project.org/blog/cross-database-joins )
+        ,defaultStorageEngine               = "InnoDB" -- default InnoDB|MyISAM
+        ,enableStorageEngineOverride        = false    -- default false|true
+        ,enableOptionsHeader                = true     -- default true|false (enable header output)
+        ,enableRenameIdColumns              = true     -- default true|false (detect_relations feature of doctrine)
+        ,enableRenameUnderscoresToCamelcase = true     -- default true|false (enable table_name -> tableName)
+        ,enableRecapitalizeTableNames       = "first"  -- default first|all|none
+        ,enableSingularPluralization        = true     -- default true|false
+        ,enableShortFormatting              = false    -- default false|true
+        ,preventTableRenaming               = false    -- default false|true
+        ,preventTableRenamingPrefix         = "col_"   -- default "col_"
+      }
+      print("local config loaded\n\n")
+    end
+end
+
+--
 -- Print some version information and copyright to the output window
 function printVersion()
-    print("\n\n\nDoctrine Export v" .. getModuleInfo().version .. "\nCopyright (c) 2008 - 2009 Johannes Mueller, Karsten Wutzke - License: LGPLv3");
+    print("\n\n\nDoctrine Export v" .. getModuleInfo().version .. "\nCopyright (c) 2008 - 2010 Johannes Mueller, Karsten Wutzke - License: LGPLv3\n\n");
+    loadConfig()
 end
 
 --
@@ -380,13 +427,17 @@ function wbSimpleType2DoctrineDatatype(column)
     }
 
     local typeName = nil
-    local doctrineType = "unknown"
+    local doctrineType = nil
 
     -- assign typeName with simpleType or userType (structuredType will not be supported anytime soon)
     if ( column.simpleType ~= nil ) then
         typeName = column.simpleType.name
     elseif ( column.userType ~= nil ) then
-        typeName = column.userType.name
+        typeName = column.userType.actualType.name
+        if ( typeName == "MULTIPOLYGON" ) then
+            typeName = "irrelevant"
+            doctrineType = column.userType.name
+        end
     elseif ( column.structuredType ~= nil ) then
         -- print("\n" .. column.name .. " type = " .. column.structuredType.name)
         return "structuredType (not implemented)"
@@ -395,28 +446,31 @@ function wbSimpleType2DoctrineDatatype(column)
     -- print("\n" .. column.name .. " type = " .. typeName)
 
     -- grab conversion type
-    doctrineType = conversionTable[(typeName)]
-
     if ( doctrineType == nil ) then
-        -- expr and a or b is LUA ternary operator fake
-        return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
+      doctrineType = conversionTable[(typeName)]
+
+      if ( doctrineType == nil ) then
+          -- expr and a or b is LUA ternary operator fake
+          return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
+      end
+
+      -- in case of a decimal type try to add precision and scale
+      if ( doctrineType == "decimal" ) then
+          if ( column.precision ~= nil and column.precision ~= -1 ) then
+              -- append precision in any case
+              doctrineType = doctrineType .. "(" .. column.precision .. ")\n"
+              -- append optional scale (only possible if precision is valid)
+              if ( column.scale ~= nil and column.scale ~= -1 ) then
+                  doctrineType = doctrineType .. "      scale: " .. column.scale
+              end
+              -- close parentheses
+              -- doctrineType = doctrineType .. ")"
+          end
+      end
     end
 
-    -- in case of a decimal type try to add precision and scale
-    if ( doctrineType == "decimal" ) then
-        if ( column.precision ~= nil and column.precision ~= -1 ) then
-            -- append precision in any case
-            doctrineType = doctrineType .. "(" .. column.precision .. ")\n"
-            -- append optional scale (only possible if precision is valid)
-            if ( column.scale ~= nil and column.scale ~= -1 ) then
-                doctrineType = doctrineType .. "      scale: " .. column.scale
-            end
-            -- close parentheses
-            -- doctrineType = doctrineType .. ")"
-        end
-    end
-
-    return string.lower(doctrineType)
+    --return string.lower(doctrineType)
+    return (doctrineType == nil) and "unknown" or doctrineType
 end
 
 --
@@ -443,10 +497,13 @@ end
 --
 -- converts a table_name to tableName
 function underscoresToCamelCase(s)
-   s = string.gsub(s, "_(%w)", function(v)
-         return string.upper(v)
-       end)
-   return s
+  if ( config.enableRenameUnderscoresToCamelcase ~= true ) then
+    return s
+  end
+  s = string.gsub(s, "_(%w)", function(v)
+        return string.upper(v)
+      end)
+  return s
 end
 
 --
@@ -454,7 +511,9 @@ end
 -- doctrine friendly tableNames
 function buildTableName(s)
     -- don't call ucfirst, leave table names as they are
-    --s = ucfirst(s)
+    if ( config.enableRecapitalizeTableNames == "first" ) then
+      s = ucfirst(s)
+    end
 
     if ( isNestedTableModel(s) ) then
         s = string.sub(s, 1, #s - 3)
@@ -497,6 +556,9 @@ end
 -- remove plural of tableNames
 -- Groups becomes Group
 function singularizeTableName(s)
+    if ( config.preventTableRenaming ) then
+      return s
+    end
 
     -- is plural?
     if ( isPlural(s) ) then
@@ -539,6 +601,9 @@ function singularizeTableName(s)
 end
 
 function pluralizeTableName(s)
+    if ( config.preventTableRenaming ) then
+      return s
+    end
 
     -- is singular?
     if ( isSingular(s) ) then
@@ -639,7 +704,11 @@ function relationBuilding(tbl, tables)
                 if ( fkReference == nil or fkReference == "" ) then
                   fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
                   if ( fkReference == nil or fkReference == "" ) then
-                    fkReference = pluralizeTableName(tbl.name)
+                    if ( config.preventTableRenaming ) then
+                      fkReference = config.preventTableRenamingPrefix .. pluralizeTableName(tbl.name)
+                    else
+                      fkReference = pluralizeTableName(tbl.name)
+                    end
                   end
                 end
             elseif ( foreignKey.many == 0 ) then
@@ -647,7 +716,7 @@ function relationBuilding(tbl, tables)
                 if ( fkReference == nil or fkReference == "" ) then
                   fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
                   if ( fkReference == nil or fkReference == "" ) then
-                    fkReference = pluralizeTableName(tbl.name)
+                    fkReference = buildTableName(tbl.name)
                   end
                 end
             else
@@ -750,6 +819,7 @@ end
 --
 -- generates the yaml schema
 function generateYamlSchema(cat)
+    -- load schema
     local i, j, schema, tbl
     local yaml = "---\n"
     local optionsSetFlag = false
@@ -773,7 +843,8 @@ function generateYamlSchema(cat)
             end
             -- does not exist in WB yet (6.x?)
             -- yaml = yaml .. "  type: " .. schema.defaultStorageEngineName .. "\n"
-            yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
+            --yaml = yaml .. "  type: " .. "InnoDB" .. "\n"
+            yaml = yaml .. "  type: " .. config.defaultStorageEngine .. "\n"
 
             yaml = yaml .. "\n"
 
@@ -924,12 +995,16 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     --print(pluralizeTableName(tbl.name))
 
     --
-    -- add the real table name to the model
-    if ( buildTableName(tbl.name) ~= tbl.name and getCrossDatabaseJoinsFlag() ~= "on" ) then
+    -- add the real table name to the model if
+    -- the automatic build table name does not match the mysql
+    -- table name
+    -- crossDatabaseJoins must be disabled
+    if ( buildTableName(tbl.name) ~= tbl.name and config.enableCrossDatabaseJoins ) then
         yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
     end
 
-    if ( getCrossDatabaseJoinsFlag() == "on" ) then
+    -- crossDatabaseJoins enabled
+    if ( config.enableCrossDatabaseJoins ) then
         yaml = yaml .. "  tableName: " .. schema.name .. "." .. tbl.name .. "\n"
         yaml = yaml .. "  connection: " .. schema.name .. "\n"
     end
@@ -1060,8 +1135,9 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     -- set table engine only if other than global definition of InnoDB
     if (     tbl.tableEngine ~= nil
          and tbl.tableEngine ~= ""
-         and tbl.tableEngine ~= "InnoDB" ) then
-        options = options .. "    type: " .. tbl.tableEngine .. "\n"
+         and tbl.tableEngine ~= config.defaultStorageEngine
+         and config.enableStorageEngineOverride ~= true ) then
+          options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
 
     if ( options ~= "" ) then
