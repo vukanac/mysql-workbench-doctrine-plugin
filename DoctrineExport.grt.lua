@@ -1012,9 +1012,10 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     -- the automatic build table name does not match the mysql
     -- table name
     -- crossDatabaseJoins must be disabled
-    if ( buildTableName(tbl.name) ~= tbl.name
-         and not config.enableCrossDatabaseJoins
-         and config.alwaysOutputTableNames
+    if ((    string.lower(buildTableName(tbl.name)) ~= string.lower(tbl.name)
+          or config.alwaysOutputTableNames
+        )
+          and not config.enableCrossDatabaseJoins
        ) then
         yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
     end
