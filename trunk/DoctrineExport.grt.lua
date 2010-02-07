@@ -354,8 +354,9 @@ function loadConfig()
     -- package.path(appdataDir .. '/MySQL/Workbench/')
     if( module_exists("modules.doctrinePluginConfig") ~= false ) then
       require "modules.doctrinePluginConfig"
-      print("external config loaded\n\n")
      -- _G.config = modules.doctrinePluginConfig.Config
+    else
+      print("optional external config not found\n\n")
     end
 
     -- #############################
@@ -376,12 +377,13 @@ function loadConfig()
       ,preventTableRenamingPrefix         = "col_"   -- default "col_"
       ,alwaysOutputTableNames             = false    -- default false|true (always add tableName: to table definition)
     }
-    print("local config loaded\n\n")
 
     if ( extConfig ~= nil ) then
       _G.config = mergeTables(locConfig, extConfig)
+      print("external config loaded\n\n")
     else
       _G.config = locConfig
+      print("local config loaded\n\n")
     end
 end
 
