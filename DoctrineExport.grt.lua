@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [fix] fixed problem with cross database joins
 --    + [add] optional separate config file
 --    + [imp] added more custom options (CUSTOM CONFIG OPTIONS)
 --            see http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToUseConfigOptions
@@ -216,16 +217,6 @@
 --
 ----------------------------------------------------------------------------------------------
 
-function getCrossDatabaseJoinsFlag()
-    -- Switch this flag to "on" if you want to use
-    -- cross database joins described on
-    -- http://www.doctrine-project.org/blog/cross-database-joins
-    -- this may break symfony models
-
-    -- return "on|off"
-    return "off"
-end
-
 -- standard plugin functions
 --
 -- this function is called first by MySQL Workbench core to determine number of
@@ -366,7 +357,7 @@ function loadConfig()
       print("external config loaded\n\n")
      -- _G.config = modules.doctrinePluginConfig.Config
     end
-    
+
     -- #############################
     -- ##  CUSTOM CONFIG OPTIONS  ##
     -- #############################
@@ -383,9 +374,10 @@ function loadConfig()
       ,enableShortFormatting              = false    -- default false|true
       ,preventTableRenaming               = false    -- default false|true
       ,preventTableRenamingPrefix         = "col_"   -- default "col_"
+      ,alwaysOutputTableNames             = false    -- default false|true (always add tableName: to table definition)
     }
     print("local config loaded\n\n")
-    
+
     if ( extConfig ~= nil ) then
       _G.config = mergeTables(locConfig, extConfig)
     else
@@ -1018,7 +1010,10 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     -- the automatic build table name does not match the mysql
     -- table name
     -- crossDatabaseJoins must be disabled
-    if ( buildTableName(tbl.name) ~= tbl.name and config.enableCrossDatabaseJoins ) then
+    if ( buildTableName(tbl.name) ~= tbl.name
+         and not config.enableCrossDatabaseJoins
+         and config.alwaysOutputTableNames
+       ) then
         yaml = yaml .. "  tableName: " .. tbl.name .. "\n"
     end
 
