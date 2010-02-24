@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] allow entity name override with {doctrine:entityName}
 --    + [add] interpret TINY/SMALL/MEDIUM prefix in userTypes as length indication
 --    + [add] support for fixed-length fields
 --    + [fix] remove default userTypes from type conversion table (handled as userTypes)
@@ -569,9 +570,14 @@ end
 
 --
 -- changing tableNames of workbench into
--- doctrine friendly tableNames
-function buildTableName(s)
-    -- don't call ucfirst, leave table names as they are
+-- doctrine friendly entityNames
+function buildEntityName(table)
+    local s
+    s = getInfoFromTableComment( table.comment, "entityName" )
+
+    if ( s == nil ) then
+        s = table.name
+
     if ( config.enableRecapitalizeTableNames == "first" ) then
       s = ucfirst(s)
     end
@@ -594,6 +600,7 @@ function buildTableName(s)
     --
     -- make camel_case to CamelCase
     s = underscoresToCamelCase(s)
+    end
 
     return s
 end
@@ -726,12 +733,6 @@ function relationBuilding(tbl, tables)
         -- relation is built on foreignKey name (enable you to have multiple reference
         -- to same table like : sale -> company (supplier, customer))
         if ( #foreignKey.columns > 0 ) then
-            tmp_name = buildTableName(foreignKey.columns[1].name)
-
-            if (string.endswith(tmp_name, "Id")) then
-                tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
-            end
-
             -- check for a special name for the relation
             -- see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=19
             -- for more information
@@ -740,12 +741,17 @@ function relationBuilding(tbl, tables)
             if( relName ~= nil and relName ~= "" ) then
               relations = relations .. "    " .. relName .. ":\n"
             else
-              relations = relations .. "    " .. buildTableName(tmp_name) .. ":\n"
+                tmp_name = foreignKey.columns[1].name
+                if (string.endswith(tmp_name, "_id")) then
+                   tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
             end
 
-            relations = relations .. "      class: " .. buildTableName(foreignKey.referencedTable.name) .. "\n"
+                relations = relations .. "    " .. tmp_name .. ":\n"
+            end
+
+            relations = relations .. "      class: " .. buildEntityName(foreignKey.referencedTable) .. "\n"
         else
-            relations = relations .. "    " .. buildTableName(foreignKey.referencedTable.name) .. ":\n"
+            relations = relations .. "    " .. buildEntityName(foreignKey.referencedTable) .. ":\n"
         end
 
         -- check zero length
@@ -777,7 +783,7 @@ function relationBuilding(tbl, tables)
                 if ( fkReference == nil or fkReference == "" ) then
                   fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
                   if ( fkReference == nil or fkReference == "" ) then
-                    fkReference = buildTableName(tbl.name)
+                    fkReference = buildEntityName(tbl)
                   end
                 end
             else
@@ -1028,7 +1034,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     --
     -- start of adding a table
-    yaml = yaml .. buildTableName(tbl.name) .. ":\n"
+    yaml = yaml .. buildEntityName(tbl) .. ":\n"
 
     -- check for actAs: in table comments
     if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
@@ -1048,7 +1054,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     -- the automatic build table name does not match the mysql
     -- table name
     -- crossDatabaseJoins must be disabled
-    if ((    string.lower(buildTableName(tbl.name)) ~= string.lower(tbl.name)
+    if ((    string.lower(buildEntityName(tbl)) ~= string.lower(tbl.name)
           or config.alwaysOutputTableNames
         )
           and not config.enableCrossDatabaseJoins
