@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [fix] remove default userTypes from type conversion table (handled as userTypes)
 --    + [fix] fixed problem with cross database joins
 --    + [add] optional separate config file
 --    + [imp] added more custom options (CUSTOM CONFIG OPTIONS)
@@ -400,37 +401,37 @@ function wbSimpleType2DoctrineDatatype(column)
     local conversionTable = {
         ["VARCHAR"]      = "string",
         ["CHAR"]         = "string",
-        ["CHARACTER"]    = "string",
-        ["INT1"]         = "integer(1)",
+--        ["CHARACTER"]    = "string",
+--        ["INT1"]         = "integer(1)",
         ["TINYINT"]      = "integer(1)",
-        ["INT2"]         = "integer(2)",
+--        ["INT2"]         = "integer(2)",
         ["SMALLINT"]     = "integer(2)",
-        ["INT3"]         = "integer(3)",
+--        ["INT3"]         = "integer(3)",
         ["MEDIUMINT"]    = "integer(3)",
-        ["INT4"]         = "integer(4)",
+--        ["INT4"]         = "integer(4)",
         ["INT"]          = "integer(4)",
-        ["INTEGER"]      = "integer(4)",
-        ["INT8"]         = "integer(8)",
+--        ["INTEGER"]      = "integer(4)",
+--        ["INT8"]         = "integer(8)",
         ["BIGINT"]       = "integer(8)",
-        ["DEC"]          = "decimal",
+--        ["DEC"]          = "decimal",
         ["DECIMAL"]      = "decimal",
-        ["NUMERIC"]      = "decimal",
+--        ["NUMERIC"]      = "decimal",
         ["FLOAT"]        = "float",
-        ["DOUBLE"]       = "double",
+        ["DOUBLE"]       = "float",
         ["DATE"]         = "date",
         ["TIME"]         = "time",
         ["DATETIME"]     = "timestamp",
         ["TIMESTAMP"]    = "timestamp",
         ["YEAR"]         = "integer(2)",
-        ["BOOL"]         = "boolean",
-        ["BOOLEAN"]      = "boolean",
+--        ["BOOL"]         = "boolean",
+--        ["BOOLEAN"]      = "boolean",
         ["BINARY"]       = "binary",      -- internally Doctrine seems to map binary to blob, which is wrong
         ["VARBINARY"]    = "varbinary",   -- internally Doctrine seems to map varbinary to blob, which is OK
         ["TINYTEXT"]     = "clob(255)",
         ["TEXT"]         = "clob(65535)",
         ["MEDIUMTEXT"]   = "clob(16777215)",
-        ["LONG"]         = "clob(16777215)",
-        ["LONG VARCHAR"] = "clob(16777215)",
+--        ["LONG"]         = "clob(16777215)",
+--        ["LONG VARCHAR"] = "clob(16777215)",
         ["LONGTEXT"]     = "clob",
         ["TINYBLOB"]     = "blob(255)",
         ["BLOB"]         = "blob(65535)",
