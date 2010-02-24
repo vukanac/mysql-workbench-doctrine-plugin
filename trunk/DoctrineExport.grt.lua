@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] support for fixed-length fields
 --    + [fix] remove default userTypes from type conversion table (handled as userTypes)
 --    + [fix] fixed problem with cross database joins
 --    + [add] optional separate config file
@@ -397,7 +398,7 @@ end
 
 --
 -- Convert workbench simple types to doctrine types
-function wbSimpleType2DoctrineDatatype(column)
+function wbSimpleType2DoctrineDatatype(prefix, column)
     local conversionTable = {
         ["VARCHAR"]      = "string",
         ["CHAR"]         = "string",
@@ -440,17 +441,37 @@ function wbSimpleType2DoctrineDatatype(column)
         ["ENUM"]         = "enum"
     }
 
+    local validUserTypesTable = {
+        ['BOOL'] = 'boolean',
+        ['BOOLEAN'] = 'boolean'
+    }
+
+    local fixedTypesTable = {
+        ['BINARY'] = true,
+        ['CHAR'] = true
+    }
+
+    local nativeStubType = 'MULTIPOLYGON'
+
     local typeName = nil
     local doctrineType = nil
+    local fixed = nil
+    local res = ""
 
     -- assign typeName with simpleType or userType (structuredType will not be supported anytime soon)
     if ( column.simpleType ~= nil ) then
         typeName = column.simpleType.name
+        fixed = fixedTypesTable[(typeName)]
     elseif ( column.userType ~= nil ) then
-        typeName = column.userType.actualType.name
-        if ( typeName == "MULTIPOLYGON" ) then
+        if ( validUserTypesTable[(column.userType.name)] ~= nil ) then
+            doctrineType = validUserTypes[(column.userType.name)]
+            typeName = "irrelevant"
+        elseif ( column.userType.actualType.name == nativeStubType ) then
             typeName = "irrelevant"
             doctrineType = column.userType.name
+        else
+            typeName = column.userType.actualType.name
+            fixed = fixedTypesTable[(typeName)]
         end
     elseif ( column.structuredType ~= nil ) then
         -- print("\n" .. column.name .. " type = " .. column.structuredType.name)
@@ -465,37 +486,44 @@ function wbSimpleType2DoctrineDatatype(column)
 
       if ( doctrineType == nil ) then
           -- expr and a or b is LUA ternary operator fake
-          return "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
+          doctrineType = "unsupported " .. (column.simpleType == nil and "simpleType" or "userType" ) .. " " .. typeName
+      end
       end
 
-      -- in case of a decimal type try to add precision and scale
+    -- begin with type
+    res = prefix .. "type: " .. ((doctrineType == nil) and "unknown" or doctrineType)
+
+    -- add length/precision/scale
       if ( doctrineType == "decimal" ) then
           if ( column.precision ~= nil and column.precision ~= -1 ) then
               -- append precision in any case
-              doctrineType = doctrineType .. "(" .. column.precision .. ")\n"
+            res = res .. "(" .. column.precision .. ")\n"
               -- append optional scale (only possible if precision is valid)
               if ( column.scale ~= nil and column.scale ~= -1 ) then
-                  doctrineType = doctrineType .. "      scale: " .. column.scale
+                res = res .. prefix .. "scale: " .. column.scale
               end
               -- close parentheses
               -- doctrineType = doctrineType .. ")"
           end
+    elseif ( column.length ~= -1 ) then
+        res = res .. "(" ..column.length.. ")"
       end
-    end
+    res = res  .. "\n"
 
-    --return string.lower(doctrineType)
-    return (doctrineType == nil) and "unknown" or doctrineType
-end
-
---
--- handle enums for doctrine
-function handleEnum(column)
-    if ( column.datatypeExplicitParams ~= nil ) then
+    -- add enum values
+    if ( doctrineType == "enum" ) then
         local s = column.datatypeExplicitParams
-        s = string.sub(s, 2, #s - 1)
-        return s
+        res = res .. prefix .. "values: ["
+        res = res .. string.sub(s, 2, #s - 1)
+        res = res .. "]\n"
     end
-    return ""
+
+    -- add fixed flag
+    if ( fixed ~= nil ) then
+        res = res .. prefix .. "fixed: true\n"
+    end
+
+    return res
 end
 
 --
@@ -886,22 +914,10 @@ end
 function buildYamlForSingleColumn(tbl, col, yaml)
     local l, m
 
-    doctrineType = wbSimpleType2DoctrineDatatype(col)
     --
     -- start of adding a column
     yaml = yaml.."    "..col.name..":\n"
-    yaml = yaml.."      type: " .. doctrineType
-    if ( doctrineType == "enum" ) then
-        -- enum handling
-        yaml = yaml.."\n"
-        yaml = yaml.."      values: ["
-        yaml = yaml.. handleEnum(col)
-        yaml = yaml.."]"
-    end
-    if ( col.length ~= -1 ) then
-        yaml = yaml.. "(" ..col.length.. ")"
-    end
-    yaml = yaml.."\n"
+    yaml = yaml .. wbSimpleType2DoctrineDatatype("      ", col)
     for m = 1, grtV.getn(tbl.indices) do
         index = tbl.indices[m]
         --
