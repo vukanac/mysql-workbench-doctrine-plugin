@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] added m:n relations indications (experimental)
 --    + [add] allow relation naming with {doctrine:localAlias} and {doctrine:foreignAlias} in FK comment
 --    + [add] allow entity name override with {doctrine:entityName}
 --    + [add] interpret TINY/SMALL/MEDIUM prefix in userTypes as length indication
@@ -569,6 +570,14 @@ function underscoresToCamelCase(s)
   return s
 end
 
+function getTable(tables, name)
+    local k
+    for k = 1, grtV.getn(tables) do
+        if ( name == tables[k].name ) then
+            return tables[k]
+        end
+    end
+end
 --
 -- changing tableNames of workbench into
 -- doctrine friendly entityNames
@@ -728,6 +737,9 @@ function relationBuilding(tbl, tables)
     local relName
     local foreignClass
     local foreignAlias
+    local mnRelations
+    local localAlias
+    local refClass
 
     for k = 1, grtV.getn(tbl.foreignKeys) do
         foreignKey = tbl.foreignKeys[k]
@@ -790,7 +802,20 @@ function relationBuilding(tbl, tables)
         --end
     end
 
-    if ( foreignKey ~= nil ) then
+    -- add m:n relations
+    mnRelations = getCommentToken(tbl.comment, "mnRelations")
+    if ( mnRelations ~= nil ) then
+        for localAlias, refClass, foreignClass, foreignAlias in string.gmatch(mnRelations, "(%a+)=>([%a%d_]+)=>([%a%d_]+)=>(%a+)") do
+            refClass = getTable( tables, refClass )
+            foreignClass = getTable( tables, foreignClass )
+            relations = relations .. "    " .. localAlias .. ":\n"
+            relations = relations .. "       class: " .. buildEntityName( foreignClass ) .. "\n"
+            relations = relations .. "       refClass: " .. buildEntityName( refClass ) .. "\n"
+            relations = relations .. "       foreignAlias: " .. foreignAlias .. "\n"
+        end
+    end
+
+    if ( foreignKey ~= nil or mnRelations ~= nil ) then
         return relations
     end
 
