@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] interpret TINY/SMALL/MEDIUM prefix in userTypes as length indication
 --    + [add] support for fixed-length fields
 --    + [fix] remove default userTypes from type conversion table (handled as userTypes)
 --    + [fix] fixed problem with cross database joins
@@ -451,11 +452,18 @@ function wbSimpleType2DoctrineDatatype(prefix, column)
         ['CHAR'] = true
     }
 
+    local sizePrefixes = {
+        ['TINY']   = 255,
+        ['SMALL']  = 65535,
+        ['MEDIUM'] = 16777215
+    }
+
     local nativeStubType = 'MULTIPOLYGON'
 
     local typeName = nil
     local doctrineType = nil
     local fixed = nil
+    local length = column.length
     local res = ""
 
     -- assign typeName with simpleType or userType (structuredType will not be supported anytime soon)
@@ -469,6 +477,17 @@ function wbSimpleType2DoctrineDatatype(prefix, column)
         elseif ( column.userType.actualType.name == nativeStubType ) then
             typeName = "irrelevant"
             doctrineType = column.userType.name
+            local p,l
+            for p,l in pairs(sizePrefixes) do
+                if string.sub(doctrineType,1,#p) == p then
+                    length = l
+                    doctrineType = string.sub(doctrineType,#p+1)
+                    break
+                end
+            end
+            if string.sub(doctrineType,1,1) == "_" then
+                doctrineType = string.gsub( doctrineType, "_", "\\" )
+            end
         else
             typeName = column.userType.actualType.name
             fixed = fixedTypesTable[(typeName)]
@@ -505,8 +524,8 @@ function wbSimpleType2DoctrineDatatype(prefix, column)
               -- close parentheses
               -- doctrineType = doctrineType .. ")"
           end
-    elseif ( column.length ~= -1 ) then
-        res = res .. "(" ..column.length.. ")"
+    elseif ( length ~= -1 ) then
+        res = res .. "(" .. length .. ")"
       end
     res = res  .. "\n"
 
