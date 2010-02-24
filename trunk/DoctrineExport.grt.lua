@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] allow relation naming with {doctrine:localAlias} and {doctrine:foreignAlias} in FK comment
 --    + [add] allow entity name override with {doctrine:entityName}
 --    + [add] interpret TINY/SMALL/MEDIUM prefix in userTypes as length indication
 --    + [add] support for fixed-length fields
@@ -573,7 +574,7 @@ end
 -- doctrine friendly entityNames
 function buildEntityName(table)
     local s
-    s = getInfoFromTableComment( table.comment, "entityName" )
+    s = getCommentToken( table.comment, "entityName" )
 
     if ( s == nil ) then
         s = table.name
@@ -724,74 +725,57 @@ function relationBuilding(tbl, tables)
     local i, k
     local foreignKey = nil
     local relations = "  relations:\n"
-    local tmp_name
+    local relName
+    local foreignClass
+    local foreignAlias
 
     for k = 1, grtV.getn(tbl.foreignKeys) do
         foreignKey = tbl.foreignKeys[k]
+        foreignClass = buildEntityName(foreignKey.referencedTable)
 
-        -- fix issue 18 (thx to MK)
-        -- relation is built on foreignKey name (enable you to have multiple reference
-        -- to same table like : sale -> company (supplier, customer))
-        if ( #foreignKey.columns > 0 ) then
-            -- check for a special name for the relation
-            -- see http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=19
-            -- for more information
-            local relName = nil
-            relName = getInfoFromTableComment(foreignKey.referencedTable.comment, "foreignAliasOne")
-            if( relName ~= nil and relName ~= "" ) then
-              relations = relations .. "    " .. relName .. ":\n"
-            else
-                tmp_name = foreignKey.columns[1].name
-                if (string.endswith(tmp_name, "_id")) then
-                   tmp_name = string.sub(tmp_name, 1, #tmp_name - 2)
+        relName = getCommentToken(foreignKey.comment, "localAlias")
+        if( relName == nil or relName == "" ) then
+            relName = getCommentToken(foreignKey.referencedTable.comment, "foreignAliasOne")
+            if( relName == nil or relName == "" ) then
+               relName = foreignKey.columns[1].name
+               if (string.endswith(relName, "_id")) then
+                   relName = string.sub(relName, 1, #relName - 2)
+               end
             end
-
-                relations = relations .. "    " .. tmp_name .. ":\n"
-            end
-
-            relations = relations .. "      class: " .. buildEntityName(foreignKey.referencedTable) .. "\n"
-        else
-            relations = relations .. "    " .. buildEntityName(foreignKey.referencedTable) .. ":\n"
         end
 
-        -- check zero length
-        if ( #foreignKey.columns > 0 ) then
-            relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
-        end
+        relations = relations .. "    " .. relName .. ":\n"
+        relations = relations .. "      class: " .. foreignClass .. "\n"
+        relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
+        relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
 
-        -- check zero length
-        if ( #foreignKey.referencedColumns > 0 ) then
-            relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
-
-            local fkReference = nil;
-
+        foreignAlias = getCommentToken(foreignKey.comment, "foreignAlias")
+        if ( foreignAlias == nil or foreignAlias == "" ) then
             -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
             if ( foreignKey.many == 1 ) then
-                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasMany")
-                if ( fkReference == nil or fkReference == "" ) then
-                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
-                  if ( fkReference == nil or fkReference == "" ) then
-                    if ( config.preventTableRenaming ) then
-                      fkReference = config.preventTableRenamingPrefix .. pluralizeTableName(tbl.name)
-                    else
-                      fkReference = pluralizeTableName(tbl.name)
-                    end
-                  end
+                foreignAlias = getCommentToken(tbl.comment, "foreignAliasMany")
+            else
+                foreignAlias = getCommentToken(tbl.comment, "foreignAliasOne")
+            end
+        end
+        if ( foreignAlias == nil or foreignAlias == "" ) then
+            foreignAlias = getCommentToken(tbl.comment, "foreignAlias")
+        end
+        if ( foreignAlias == nil or foreignAlias == "" ) then
+            if ( foreignKey.many == 1 ) then
+                if ( config.preventTableRenaming ) then
+                    foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(foreignClass)
+                else
+                    foreignAlias = pluralizeTableName(foreignClass)
                 end
             elseif ( foreignKey.many == 0 ) then
-                fkReference = getInfoFromTableComment(tbl.comment, "foreignAliasOne")
-                if ( fkReference == nil or fkReference == "" ) then
-                  fkReference = getInfoFromTableComment(tbl.comment, "foreignAlias")
-                  if ( fkReference == nil or fkReference == "" ) then
-                    fkReference = buildEntityName(tbl)
-                  end
-                end
+                foreignAlias = foreignClass
             else
-                fkReference = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
+                foreignAlias = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
             end
-
-            relations = relations .. "      foreignAlias: " .. fkReference .. "\n"
         end
+
+        relations = relations .. "      foreignAlias: " .. foreignAlias .. "\n"
 
         if ( foreignKey.deleteRule ~= nil and foreignKey.deleteRule ~= "" and foreignKey.deleteRule ~= "NO ACTION" ) then
             relations = relations .. "      onDelete: " .. string.lower( foreignKey.deleteRule ) .. "\n"
@@ -817,7 +801,7 @@ end
 -- extract informations regarding doctrine
 -- from table comments in workbench model
 -- comment like {doctrine:actAs} [..] {/doctrine:actAs}
-function getInfoFromTableComment(c, info)
+function getCommentToken(c, info)
   local tmp
   tmp = string.gsub(c, ".*{doctrine:" .. info .. "}(.+){/doctrine:" .. info .. "}.*", function(v)
             return string.gsub(v, "^[\r\n]*(.+)", function(x)
@@ -1038,7 +1022,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
 
     -- check for actAs: in table comments
     if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
-      actAs = getInfoFromTableComment(tbl.comment, "actAs")
+      actAs = getCommentToken(tbl.comment, "actAs")
       if ( actAs ~= "" and actAs ~= nil ) then
         yaml = yaml .. actAs .. "\n"
       end
