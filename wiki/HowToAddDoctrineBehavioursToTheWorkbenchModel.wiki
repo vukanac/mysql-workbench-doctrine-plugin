@@ -1,4 +1,5 @@
 #summary This wiki page shows you how you can add doctrine behaviours to your Workbench model
+#labels Featured
 
 = Introduction =
 
