@@ -1,4 +1,5 @@
 #summary This page shows you how you should prepare the Workbench application before using it with the plugin
+#labels Featured
 
 = How to prepare MySQL Workbench for use with the Doctrine plugin =
 
