@@ -733,7 +733,8 @@ function relationBuilding(tbl, tables)
 
     local i, k
     local foreignKey = nil
-    local relations = "  relations:\n"
+    -- local relations = "  relations:\n"
+    local relations = ""
     local relName
     local foreignClass
     local foreignAlias
@@ -815,8 +816,16 @@ function relationBuilding(tbl, tables)
         end
     end
 
+    -- allow for defining extra relations not included in model diagram
+    -- (e.g. for relations with tables from Symfony plugins schema files)
+    local externalRelations = nil
+    externalRelations = getCommentToken(tbl.comment, "externalRelations")
+    if ( externalRelations ~= "" and externalRelations ~= nil ) then
+        relations = relations .. externalRelations .. "\n"
+    end
+    
     if ( foreignKey ~= nil or mnRelations ~= nil ) then
-        return relations
+        return "  relations:\n" .. relations
     end
 
     return ""
