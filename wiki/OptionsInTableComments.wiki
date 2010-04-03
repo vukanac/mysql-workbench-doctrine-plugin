@@ -6,3 +6,26 @@ You possibly noticed our approach to add behaviours to the models with a very si
 
 = Details =
 
+== How to use ==
+To bypass options to your yaml scheme, you have to select a table in your Workbench model and add some special formatted comments to the comment field.
+
+See this example, which enables the timestampable behaviour:
+{{{
+{doctrine:actAs}
+  actAs:
+    Timestampable:
+{/doctrine:actAs}
+}}}
+
+*Be aware of the 2 leading spaces in front of the actAs. These indentions are mandatory.*
+
+== Available options ==
+|| *option* || *effect* || *intention* || *example* ||
+|| actAs ||  ||  ||  ||
+|| entityName ||  ||  ||  ||
+|| localAlias ||  ||  ||  ||
+|| foreignAlias ||  ||  ||  ||
+|| foreignAliasOne ||  ||  ||  ||
+|| foreignAliasMany ||  ||  ||  ||
+|| mnRelations ||  ||  ||  ||
+|| externalRelations ||  ||  ||  ||
