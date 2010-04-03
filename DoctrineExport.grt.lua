@@ -382,6 +382,7 @@ function loadConfig()
       ,preventTableRenaming               = false    -- default false|true
       ,preventTableRenamingPrefix         = "col_"   -- default "col_"
       ,alwaysOutputTableNames             = false    -- default false|true (always add tableName: to table definition)
+      ,sortTablesAlphabetical             = false    -- default false|true
     }
 
     if ( extConfig ~= nil ) then
@@ -938,13 +939,21 @@ function generateYamlSchema(cat)
 
         --print(schema)
 
+        local t = {}
         for j = 1, grtV.getn(schema.tables) do
             tbl = schema.tables[j]
-
+            table.insert(t, {key=tbl.name, value=tbl})
+        end
+        
+        if ( config.sortTablesAlphabetical ) then
+            table.sort(t, function(a,b) return a.key < b.key; end);
+        end
+        
+        for idx, row in ipairs(t) do
             --
             -- do not export *_translation tables
-            if ( string.endswith(tbl.name, "_translation") == false ) then
-                yaml = buildYamlForSingleTable(tbl, schema, yaml)
+            if ( string.endswith(row.key, "_translation") == false ) then
+                yaml = buildYamlForSingleTable(row.value, schema, yaml)
             end
         end
     end
