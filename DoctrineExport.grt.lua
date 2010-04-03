@@ -60,6 +60,8 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM)
+--    + [add] config option for sorting table names alphabetical see issue #34
+--    + [add] added {doctrine:externalRelation /} for bypassing relations see issue #32
 --    + [add] added m:n relations indications (experimental)
 --    + [add] allow relation naming with {doctrine:localAlias} and {doctrine:foreignAlias} in FK comment
 --    + [add] allow entity name override with {doctrine:entityName}
