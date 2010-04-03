@@ -30,8 +30,22 @@ See this example, which enables the timestampable behaviour:
 || mnRelations ||  ||  ||
 || externalRelations ||  ||  ||
 
+=== Example 1: actAs ===
+{{{
+{doctrine:actAs}
+  actAs:
+    Timestampable:
+{/doctrine:actAs}
+}}}
 
-=== externalRelations Example ===
+=== Example 2: entityName ===
+{{{
+{doctrine:entityName}
+Status
+{/doctrine:entityName}
+}}}
+
+=== Example 8: externalRelations ===
 
 *be aware of the 4 leading spaces*
 
