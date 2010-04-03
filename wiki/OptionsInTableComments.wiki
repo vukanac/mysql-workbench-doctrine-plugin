@@ -29,3 +29,18 @@ See this example, which enables the timestampable behaviour:
 || foreignAliasMany ||  ||  ||
 || mnRelations ||  ||  ||
 || externalRelations ||  ||  ||
+
+
+=== externalRelations Example ===
+
+*be aware of the 4 leading spaces*
+
+{{{
+{doctrine:externalRelations}
+    Users:
+      class: sfGuardUser
+      local: project_id
+      foreign: user_id
+      refClass: UserProject
+{/doctrine:externalRelations}
+}}}
