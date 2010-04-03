@@ -20,12 +20,12 @@ See this example, which enables the timestampable behaviour:
 *Be aware of the 2 leading spaces in front of the actAs. These indentions are mandatory.*
 
 == Available options ==
-|| *option* || *effect* || *intention* || *example* ||
-|| actAs || bypasses yaml directly under the table name || add behaviours or other options to your table model || see example above ||
-|| entityName || the table name will be exactly this name || prevent the plugin from do any special treatment to the table name || {{{{doctrine:entityName}Status{/doctrine:entityName} }}} ||
-|| localAlias ||  ||  ||  ||
-|| foreignAlias ||  ||  ||  ||
-|| foreignAliasOne ||  ||  ||  ||
-|| foreignAliasMany ||  ||  ||  ||
-|| mnRelations ||  ||  ||  ||
-|| externalRelations ||  ||  ||  ||
+|| *option* || *effect* || *intention* ||
+|| actAs || bypasses yaml directly under the table name || add behaviours or other options to your table model ||
+|| entityName || the table name will be exactly this name || prevent the plugin from do any special treatment to the table name ||
+|| localAlias ||  ||  ||
+|| foreignAlias ||  ||  ||
+|| foreignAliasOne ||  ||  ||
+|| foreignAliasMany ||  ||  ||
+|| mnRelations ||  ||  ||
+|| externalRelations ||  ||  ||
