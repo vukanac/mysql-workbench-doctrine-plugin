@@ -55,13 +55,20 @@ Status
 }}}
 
 === Example 7: mnRelations ===
+
+*don't forget to replace each with the matching table names*
 {{{
 {doctrine:mnRelations}
 localAlias=>ref_table=>foreign_table=>foreignAlias
 {/doctrine:mnRelations}
 }}}
 
-*don't forget to replace each with the matching table names*
+Let's consider a real world example of students and courses - where each student visits many courses and each course consists of many studens (a classical many-to-many relationship). Then you would probably add the following piece of code to the comment in the Student table.
+{{{
+{doctrine:mnRelations}
+Students=>students_courses=>courses=>Courses
+{/doctrine:mnRelations}
+}}}
 
 === Example 8: externalRelations ===
 
