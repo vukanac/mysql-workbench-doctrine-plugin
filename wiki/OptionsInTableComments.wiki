@@ -23,7 +23,7 @@ See this example, which enables the timestampable behaviour:
 || *option* || *effect* || *intention* ||
 || actAs || bypasses yaml directly under the table name || add behaviours or other options to your table model ||
 || entityName || the table name will be exactly this name || prevent the plugin from do any special treatment to the table name ||
-|| localAlias ||  ||  ||
+|| localAlias || none? ||  ||
 || foreignAlias ||  ||  ||
 || foreignAliasOne ||  ||  ||
 || foreignAliasMany ||  ||  ||
@@ -31,6 +31,8 @@ See this example, which enables the timestampable behaviour:
 || externalRelations ||  ||  ||
 
 === Example 1: actAs ===
+
+*be aware of the 2 leading spaces*
 {{{
 {doctrine:actAs}
   actAs:
@@ -45,10 +47,16 @@ Status
 {/doctrine:entityName}
 }}}
 
+=== Example 3: localAlias ===
+{{{
+{doctrine:localAlias}
+???
+{/doctrine:localAlias}
+}}}
+
 === Example 8: externalRelations ===
 
 *be aware of the 4 leading spaces*
-
 {{{
 {doctrine:externalRelations}
     Users:
