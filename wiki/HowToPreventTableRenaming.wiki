@@ -15,4 +15,4 @@ To disable table renaming you just have to:
   # change the option "preventTableRenaming" to true
   # (optional) change the "preventTableRenamingPrefix" to your preferred, otherwise relations start with "col_" which stands for collection
 
-You can readmore  about config options [http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToUseConfigOptions here].
+You can read more about config options [http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToUseConfigOptions here].
