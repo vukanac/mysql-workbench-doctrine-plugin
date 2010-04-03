@@ -10,9 +10,9 @@ In some cases you don't want this behaviour e.g. when you use non english table 
 
 To disable table renaming you just have to:
 
-1. open the plugin code
-2. find the config section
-3. change the option "preventTableRenaming" to true
-4. (optional) change the "preventTableRenamingPrefix" to your preferred, otherwise relations start with "col_" which stands for collection
+  # open the plugin code
+  # find the config section
+  # change the option "preventTableRenaming" to true
+  # (optional) change the "preventTableRenamingPrefix" to your preferred, otherwise relations start with "col_" which stands for collection
 
 You can readmore  about config options [http://code.google.com/p/mysql-workbench-doctrine-plugin/wiki/HowToUseConfigOptions here].
