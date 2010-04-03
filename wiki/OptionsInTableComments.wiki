@@ -21,8 +21,8 @@ See this example, which enables the timestampable behaviour:
 
 == Available options ==
 || *option* || *effect* || *intention* || *example* ||
-|| actAs ||  ||  ||  ||
-|| entityName ||  ||  ||  ||
+|| actAs || bypasses yaml directly under the table name || add behaviours or other options to your table model || see example above ||
+|| entityName || the table name will be exactly this name || prevent the plugin from do any special treatment to the table name || {{{{doctrine:entityName}Status{/doctrine:entityName} }}} ||
 || localAlias ||  ||  ||  ||
 || foreignAlias ||  ||  ||  ||
 || foreignAliasOne ||  ||  ||  ||
