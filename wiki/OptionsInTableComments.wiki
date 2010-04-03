@@ -1,0 +1,8 @@
+#summary How to bypass options in table comments
+
+= Introduction =
+
+You possibly noticed our approach to add behaviours to the models with a very simple hack. Over the past few weeks we also implemented a few other things which makes your life easier using the plugin.
+
+= Details =
+
