@@ -376,11 +376,11 @@ function loadConfig()
       ,defaultStorageEngine               = "InnoDB" -- default InnoDB|MyISAM
       ,enableStorageEngineOverride        = false    -- default false|true
       ,enableOptionsHeader                = true     -- default true|false (enable header output)
-      ,enableRenameIdColumns              = true     -- default true|false (detect_relations feature of doctrine)
+      --,enableRenameIdColumns              = true     -- default true|false (detect_relations feature of doctrine)
       ,enableRenameUnderscoresToCamelcase = true     -- default true|false (enable table_name -> tableName)
       ,enableRecapitalizeTableNames       = "first"  -- default first|all|none
-      ,enableSingularPluralization        = true     -- default true|false
-      ,enableShortFormatting              = false    -- default false|true
+      --,enableSingularPluralization        = true     -- default true|false
+      --,enableShortFormatting              = false    -- default false|true
       ,preventTableRenaming               = false    -- default false|true
       ,preventTableRenamingPrefix         = "col_"   -- default "col_"
       ,alwaysOutputTableNames             = false    -- default false|true (always add tableName: to table definition)
