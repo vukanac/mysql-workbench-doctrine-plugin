@@ -27,7 +27,7 @@ See this example, which enables the timestampable behaviour:
 || foreignAlias || see foreignAliasMany and foreignAliasOne || fallback solution for foreignAliasMany and foreignAliasOne ||
 || foreignAliasOne || name of the table when referenced in a relation (representation of *one entity*) ||  ||
 || foreignAliasMany || name of the table when referenced in a relation (representation of a *collection of entities*) ||  ||
-|| mnRelations ||  ||  ||
+|| mnRelations || define a (proxy) reference table for m:n relations || you can use m:n relations like 1:n relations ||
 || externalRelations || bypass a relation || helps you to integrate relations to tables that are not related to your scheme, like integrating external plugins ||
 
 === Example 1: actAs ===
@@ -53,6 +53,15 @@ Status
 ???
 {/doctrine:localAlias}
 }}}
+
+=== Example 7: mnRelations ===
+{{{
+{doctrine:mnRelations}
+localAlias=>ref_table=>foreign_table=>foreignAlias
+{/doctrine:mnRelations}
+}}}
+
+*don't forget to replace each with the matching table names*
 
 === Example 8: externalRelations ===
 
