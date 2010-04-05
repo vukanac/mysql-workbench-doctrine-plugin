@@ -32,7 +32,7 @@
 ---------------------------------------------------------------------------------------------
 --
 -- * IMPORTANT:
--- * If you find BUGS in this plugin or have ideas for IMPROVEMENTS or PATCHES, don't hesitate
+-- * If you find BUGS in this plugin or have ideas for IMPROVEMENTS or PATCHES, do not hesitate
 -- * to contact us at http://code.google.com/p/mysql-workbench-doctrine-plugin/
 --
 -- INSTALLATION:
@@ -45,7 +45,7 @@
 -- 2. Open the database schema
 -- 3. Go to "Plugins" -> "Catalog"
 --    3a. Select "Doctrine Export: Copy [...] to Clipboard" to save the YAML output to your
---        OS's clipboard, just open a new file and paste it there
+--        OSs clipboard, just open a new file and paste it there
 --    3b. Select "Doctrine Export: Write [...] to File..." and save the YAML output to a text
 --        file as specified in the dialog
 --
@@ -59,7 +59,8 @@
 --    schema name next to it.
 --
 -- CHANGELOG:
--- 0.4.2dev (JM)
+-- 0.4.2dev (JM, KW)
+--    + [fix] fixed singular/plural issue with table names ending with "us", see issue #33 (KW)
 --    + [add] config option for sorting table names alphabetical see issue #34
 --    + [add] added {doctrine:externalRelation /} for bypassing relations see issue #32
 --    + [add] added m:n relations indications (experimental)
@@ -625,7 +626,7 @@ end
 
 function isPlural(s)
     -- is plural if string ends with an "s" but not with "ss"
-    return string.endswith(s, "s") and not string.endswith(s, "ss") and #s > 1
+    return #s > 1 and string.endswith(s, "s") and not string.endswith(s, "ss") and not string.endswith(s, "us")
 end
 
 function isSingular(s)
@@ -752,7 +753,7 @@ function relationBuilding(tbl, tables)
         relName = getCommentToken(foreignKey.comment, "localAlias")
         if( relName == nil or relName == "" ) then
             relName = getCommentToken(foreignKey.referencedTable.comment, "foreignAliasOne")
-            if( relName == nil or relName == "" ) then
+            if( relName == nil or relName == "" and #foreignKey.columns > 0 ) then
                relName = foreignKey.columns[1].name
                if (string.endswith(relName, "_id")) then
                    relName = string.sub(relName, 1, #relName - 2)
