@@ -745,6 +745,7 @@ function relationBuilding(tbl, tables)
     local mnRelations
     local localAlias
     local refClass
+    local localClass = buildEntityName(tbl)
 
     for k = 1, grtV.getn(tbl.foreignKeys) do
         foreignKey = tbl.foreignKeys[k]
@@ -756,11 +757,13 @@ function relationBuilding(tbl, tables)
             if( relName == nil or relName == "" and #foreignKey.columns > 0 ) then
                relName = foreignKey.columns[1].name
                if (string.endswith(relName, "_id")) then
-                   relName = string.sub(relName, 1, #relName - 2)
+                   -- relName = string.sub(relName, 1, #relName - 2)
+                   relName = string.sub(relName, 1, #relName - 3)
                end
             end
         end
 
+        relName = underscoresToCamelCase(foreignClass)
         relations = relations .. "    " .. relName .. ":\n"
         relations = relations .. "      class: " .. foreignClass .. "\n"
         relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
@@ -781,12 +784,15 @@ function relationBuilding(tbl, tables)
         if ( foreignAlias == nil or foreignAlias == "" ) then
             if ( foreignKey.many == 1 ) then
                 if ( config.preventTableRenaming ) then
-                    foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(foreignClass)
+                    -- foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(foreignClass)
+                    foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(localClass)
                 else
-                    foreignAlias = pluralizeTableName(foreignClass)
+                    -- foreignAlias = pluralizeTableName(foreignClass)
+                    foreignAlias = pluralizeTableName(localClass)
                 end
             elseif ( foreignKey.many == 0 ) then
-                foreignAlias = foreignClass
+                -- foreignAlias = foreignClass
+                foreignAlias = localClass
             else
                 foreignAlias = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
             end
