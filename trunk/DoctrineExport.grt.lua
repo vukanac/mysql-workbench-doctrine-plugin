@@ -479,7 +479,7 @@ function wbSimpleType2DoctrineDatatype(prefix, column)
         fixed = fixedTypesTable[(typeName)]
     elseif ( column.userType ~= nil ) then
         if ( validUserTypesTable[(column.userType.name)] ~= nil ) then
-            doctrineType = validUserTypes[(column.userType.name)]
+            doctrineType = validUserTypesTable[(column.userType.name)]
             typeName = "irrelevant"
         elseif ( column.userType.actualType.name == nativeStubType ) then
             typeName = "irrelevant"
