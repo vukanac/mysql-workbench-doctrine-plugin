@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
+--    + [add] option for using reference names as relation names instead of foreign table names, see issue #37
 --    + [fix] fixed singular/plural issue with table names ending with "us", see issue #33 (KW)
 --    + [add] config option for sorting table names alphabetical see issue #34
 --    + [add] added {doctrine:externalRelation /} for bypassing relations see issue #32
@@ -386,6 +387,7 @@ function loadConfig()
       ,preventTableRenamingPrefix         = "col_"   -- default "col_"
       ,alwaysOutputTableNames             = false    -- default false|true (always add tableName: to table definition)
       ,sortTablesAlphabetical             = false    -- default false|true
+      ,useReferencenamesAsRelationnames   = false    -- default false|true
     }
 
     if ( extConfig ~= nil ) then
@@ -763,7 +765,19 @@ function relationBuilding(tbl, tables)
             end
         end
 
-        relName = underscoresToCamelCase(foreignClass)
+        -- use the name of the reference as relation name
+        if ( config.useReferencenamesAsRelationnames ) then
+          relName = foreignKey.name
+          if ( config.enableRenameUnderscoresToCamelcase ) then
+            relName = underscoresToCamelCase(relName)
+          end
+          if ( config.enableRecapitalizeTableNames == "first" ) then
+            relName = ucfirst(relName)
+          end
+        -- else use the name of the foreign class as relation name
+        else
+          relName = underscoresToCamelCase(foreignClass)
+        end
         relations = relations .. "    " .. relName .. ":\n"
         relations = relations .. "      class: " .. foreignClass .. "\n"
         relations = relations .. "      local: " .. foreignKey.columns[1].name .. "\n"
@@ -833,7 +847,7 @@ function relationBuilding(tbl, tables)
     if ( externalRelations ~= "" and externalRelations ~= nil ) then
         relations = relations .. externalRelations .. "\n"
     end
-    
+
     if ( foreignKey ~= nil or mnRelations ~= nil ) then
         return "  relations:\n" .. relations
     end
@@ -953,11 +967,11 @@ function generateYamlSchema(cat)
             tbl = schema.tables[j]
             table.insert(t, {key=tbl.name, value=tbl})
         end
-        
+
         if ( config.sortTablesAlphabetical ) then
             table.sort(t, function(a,b) return a.key < b.key; end);
         end
-        
+
         for idx, row in ipairs(t) do
             --
             -- do not export *_translation tables
