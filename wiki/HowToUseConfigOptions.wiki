@@ -39,4 +39,4 @@ At the moment we implemented these options (an actual list is always included in
 || preventTableRenamingPrefix || _string_ || col_ ||if preventTableRenaming is true, then your relations will not be distinguishable from the table names, therefor your relations get a prefix (here col_ for collection) ||
 || alwaysOutputTableNames || true | false || false || if you always want to output the real table name as an option set this to true, normally it is only outputted if the table name and the real table name differs ||
 || sortTablesAlphabetical || false | true || false || if you want to sort the tables alphabetical in the output, set this option to true ||
-|| useReferencenamesAsRelationnames || false | true || false || normally the name of the foreign table is used for the naming of a relation, if you enable this option the name of the reference itself is taken by the plugin to name the relation ||
+|| useReferencenamesAsRelationnames || false | true || false || normally the name of the foreign table is used as the name of a relation, if you enable this option the name of the reference itself is taken by the plugin to name the relation ||
