@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
+--    + [add] added type one|many for relations, see issue #39
 --    + [add] option for using reference names as relation names instead of foreign table names, see issue #37
 --    + [fix] fixed singular/plural issue with table names ending with "us", see issue #33 (KW)
 --    + [add] config option for sorting table names alphabetical see issue #34
@@ -765,6 +766,8 @@ function relationBuilding(tbl, tables)
             end
         end
 
+        print(foreignKey)
+
         -- use the name of the reference as relation name
         if ( config.useReferencenamesAsRelationnames ) then
           relName = foreignKey.name
@@ -822,9 +825,11 @@ function relationBuilding(tbl, tables)
             relations = relations .. "      onUpdate: " .. string.lower( foreignKey.updateRule ) .. "\n"
         end
 
-        --if ( foreignKey.many == 1 ) then
-        --    relations = relations .. "      type: many\n"
-        --end
+        if( foreignKey.many == 1 ) then
+          relations = relations .. "      type: many\n"
+        else
+          relations = relations .. "      type: one\n"
+        end
     end
 
     -- add m:n relations
