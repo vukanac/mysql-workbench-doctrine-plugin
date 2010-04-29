@@ -766,8 +766,6 @@ function relationBuilding(tbl, tables)
             end
         end
 
-        print(foreignKey)
-
         -- use the name of the reference as relation name
         if ( config.useReferencenamesAsRelationnames ) then
           relName = foreignKey.name
