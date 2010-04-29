@@ -1073,9 +1073,10 @@ function buildYamlForSingleColumn(tbl, col, yaml)
     end
 
     -- if CHAR type, set fixed flag
-    if ( col.simpleType ~= nil and col.simpleType.name == "CHAR" ) then
-        yaml = yaml.."      fixed: true\n"
-    end
+    -- commented because of issue #40
+    --if ( col.simpleType ~= nil and col.simpleType.name == "CHAR" ) then
+    --    yaml = yaml.."      fixed: true\n"
+    --end
 
     return yaml
 end
