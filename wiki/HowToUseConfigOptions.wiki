@@ -2,7 +2,9 @@
 
 = Introduction =
 
-You probably didn't notice of config options in the plugin yet, but there are a few options which might help you and I will introduce you.
+With config options you can customize the plugin to fit your needs.
+
+== Local vs Global Configuration ==
 
 You can use the config options directly in the plugin file, which means whenever you update the plugin your personal settings will be lost *or* you can store a global config file which overwrites the local settings with the global ones. You only need to add options you want to be overwritten, for the other options it falls back to the local ones.
 
