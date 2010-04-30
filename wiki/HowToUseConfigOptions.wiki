@@ -26,6 +26,10 @@ _G.extConfig = {
 
 This configuration would set the table engine to InnoDB for all your tables and will not output the headers in the yml file.
 
+== Check which config is loaded ==
+
+To check whether the plugin has access to a global config file or not you can check this by opening the output window (View -> Output or press Ctrl+F2) and run the export process. When no global configuration is found the plugin will show you two messages _"optional external config not found"_ and _"local config loaded"_ which is self explanatory. If a global configuration file is found you will see the message _"external config loaded"_. Keep in mind that this might get important when the output does not match your expectations.
+
 = Details =
 
 At the moment we implemented these options (an actual list is always included in the plugin code as the local options):
