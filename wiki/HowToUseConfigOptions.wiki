@@ -6,7 +6,7 @@ With config options you can customize the plugin to fit your needs, for example 
 
 == Local vs Global Configuration ==
 
-You can use the config options directly in the plugin file, which means whenever you update the plugin your personal settings will be lost *or* you can store a global config file which overwrites the local settings with the global ones. You only need to add options you want to be overwritten, for the other options it falls back to the local ones.
+You can use the config options directly in the plugin file, which means whenever you update the plugin your personal settings will be lost *OR* you can store a global config file which overwrites the local settings with the global ones. You only need to add options you want to be overwritten, for the other options it falls back to the local ones.
 
 A global config file is named *doctrinePluginConfig.lua* and (for Win) it's located in _%PROGRAMFILES%/MySQL/Workbench/modules_ instead of _%APPDATA%/MySQL/Workbench/modules_. It looks like the following:
 {{{
