@@ -2,7 +2,7 @@
 
 = Introduction =
 
-With config options you can customize the plugin to fit your needs.
+With config options you can customize the plugin to fit your needs, for example to export always table names or to choose a special storage engine by default.
 
 == Local vs Global Configuration ==
 
