@@ -553,6 +553,12 @@ function wbSimpleType2DoctrineDatatype(prefix, column)
     if ( fixed ~= nil ) then
         res = res .. prefix .. "fixed: true\n"
     end
+    
+    -- add validator
+    local validators = getCommentToken( column.comment, "validators" )
+    if( validators ~= nil ) then
+      res = res .. validators .. "\n"
+    end
 
     return res
 end
