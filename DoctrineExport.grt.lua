@@ -60,6 +60,7 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
+--    + [fix] fixed problem with relations (fixed issue 41)
 --    + [add] added type one|many for relations, see issue #39
 --    + [add] option for using reference names as relation names instead of foreign table names, see issue #37
 --    + [fix] fixed singular/plural issue with table names ending with "us", see issue #33 (KW)
@@ -352,6 +353,7 @@ function mergeTables(t1, t2)
   end
   for k, v in pairs(t2) do
     r[k] = v
+    print("global config chosen for option " .. k .. "\n")
   end
   return r
 end
@@ -824,10 +826,11 @@ function relationBuilding(tbl, tables)
         end
 
         if( foreignKey.many == 1 ) then
-          relations = relations .. "      type: many\n"
+          relations = relations .. "      foreignType: many\n"
         else
-          relations = relations .. "      type: one\n"
+          relations = relations .. "      foreignType: one\n"
         end
+        relations = relations .. "      owningSide: true\n"
     end
 
     -- add m:n relations
@@ -934,14 +937,13 @@ function generateYamlSchema(cat)
     -- load schema
     local i, j, schema, tbl
     local yaml = "---\n"
-    local optionsSetFlag = false
 
     for i = 1, grtV.getn(cat.schemata) do
         schema = cat.schemata[i]
 
         --print(schema)
 
-        if ( optionsSetFlag == false ) then
+        if ( config.enableOptionsHeader ) then
             -- automatically detect relations
             yaml = yaml .. "detect_relations: true\n"
             --
@@ -1246,10 +1248,12 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     end
 
     -- set table engine only if other than global definition of InnoDB
-    if (     tbl.tableEngine ~= nil
-         and tbl.tableEngine ~= ""
-         and tbl.tableEngine ~= config.defaultStorageEngine
-         and config.enableStorageEngineOverride ~= true ) then
+    if ((     tbl.tableEngine ~= nil
+          and tbl.tableEngine ~= ""
+          and tbl.tableEngine ~= config.defaultStorageEngine
+         )
+          or config.enableStorageEngineOverride
+        ) then
           options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
 
