@@ -60,6 +60,8 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
+--    + [add] implemented mapClass for Aerial
+--            see http://groups.google.com/group/mysql-workbench-doctrine-plugin/browse_thread/thread/a74ec192ef8200a4
 --    + [fix] fixed problem with relations (fixed issue 41)
 --    + [add] added type one|many for relations, see issue #39
 --    + [add] option for using reference names as relation names instead of foreign table names, see issue #37
@@ -1093,11 +1095,21 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     local k, l, col, index, column
     local actAsPart = ""
     local actAs = ""
-
+    local package = ""
+    
     --
     -- start of adding a table
     yaml = yaml .. buildEntityName(tbl) .. ":\n"
 
+    -- check for package: in schema comments needed when using Aerial CMS
+	-- this will create the YAML mapClass property for Aerial
+	if ( schema.comment ~= nil and schema.comment ~= "" ) then
+      package = getCommentToken(schema.comment, "package")
+      if ( package ~= "" and package ~= nil ) then
+        yaml = yaml .. package .. "." .. tbl.name .. "\n"
+      end
+    end
+    
     -- check for actAs: in table comments
     if ( tbl.comment ~= nil and tbl.comment ~= "" ) then
       actAs = getCommentToken(tbl.comment, "actAs")
