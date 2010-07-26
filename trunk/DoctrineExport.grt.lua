@@ -60,8 +60,8 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
---    + [fix] issue #50 file export overwrites existing file
---            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=50
+--    + [fix] issue #51 file export overwrites existing file
+--            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=51
 --    + [add] implemented mapClass for Aerial
 --    + [add] issue #50 concerning options in comments
 --            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=50
