@@ -60,6 +60,13 @@
 --
 -- CHANGELOG:
 -- 0.4.2dev (JM, KW)
+--    + [fix] issue #50 file export overwrites existing file
+--            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=50
+--    + [add] implemented mapClass for Aerial
+--    + [add] issue #50 concerning options in comments
+--            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=50
+--    + [fix] issue #55 concerning external relations
+--            http://code.google.com/p/mysql-workbench-doctrine-plugin/issues/detail?id=55
 --    + [add] implemented mapClass for Aerial
 --            see http://groups.google.com/group/mysql-workbench-doctrine-plugin/browse_thread/thread/a74ec192ef8200a4
 --    + [fix] fixed problem with relations (fixed issue 41)
@@ -576,6 +583,13 @@ function ucfirst(s)
 end
 
 --
+-- converts first character of given string to lowercase
+function lcfirst(s)
+    -- only lowercase the very first char, leave all others untouched
+    return string.lower(string.sub(s, 0, 1)) .. string.sub(s, 2, #s)
+end
+
+--
 -- converts a table_name to tableName
 function underscoresToCamelCase(s)
   if ( config.enableRenameUnderscoresToCamelcase ~= true ) then
@@ -787,7 +801,7 @@ function relationBuilding(tbl, tables)
           end
         -- else use the name of the foreign class as relation name
         else
-          relName = underscoresToCamelCase(foreignClass)
+          relName = lcfirst(underscoresToCamelCase(foreignClass))
         end
         relations = relations .. "    " .. relName .. ":\n"
         relations = relations .. "      class: " .. foreignClass .. "\n"
@@ -795,6 +809,7 @@ function relationBuilding(tbl, tables)
         relations = relations .. "      foreign: " .. foreignKey.referencedColumns[1].name .. "\n"
 
         foreignAlias = getCommentToken(foreignKey.comment, "foreignAlias")
+        
         if ( foreignAlias == nil or foreignAlias == "" ) then
             -- 1:1 FK creates singular, 1:n creates plural Doctrine foreignAlias -> getEmailAdresses(), getContact(), ...
             if ( foreignKey.many == 1 ) then
@@ -812,12 +827,12 @@ function relationBuilding(tbl, tables)
                     -- foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(foreignClass)
                     foreignAlias = config.preventTableRenamingPrefix .. pluralizeTableName(localClass)
                 else
-                    -- foreignAlias = pluralizeTableName(foreignClass)
-                    foreignAlias = pluralizeTableName(localClass)
+                    -- foreignAlias = lcfirst(pluralizeTableName(foreignClass))
+                    foreignAlias = lcfirst(pluralizeTableName(localClass))
                 end
             elseif ( foreignKey.many == 0 ) then
-                -- foreignAlias = foreignClass
-                foreignAlias = localClass
+                -- foreignAlias = lcfirst(foreignClass)
+                foreignAlias = lcfirst(localClass)
             else
                 foreignAlias = "FK " .. foreignKey.name .. " is broken! It has no destination cardinality (many is not 0 and not 1)."
             end
@@ -1096,6 +1111,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
     local actAsPart = ""
     local actAs = ""
     local package = ""
+    local commentOpts = ""
     
     --
     -- start of adding a table
@@ -1116,6 +1132,7 @@ function buildYamlForSingleTable(tbl, schema, yaml)
       if ( actAs ~= "" and actAs ~= nil ) then
         yaml = yaml .. actAs .. "\n"
       end
+      commentOpts = getInfoFromTableComment(tbl.comment, "options")
     end
 
     -- test singularize and pluralize functions
@@ -1275,6 +1292,10 @@ function buildYamlForSingleTable(tbl, schema, yaml)
           options = options .. "    type: " .. tbl.tableEngine .. "\n"
     end
 
+    if ( commentOpts ~= "" and commentOpts ~= nil ) then
+      options = options .. commentOpts .. "\n"
+    end
+    
     if ( options ~= "" ) then
         yaml = yaml .. "  options:\n" .. options
     end
@@ -1308,8 +1329,8 @@ function exportYamlSchemaToFile(catalog)
     --print("\nFilepath is: " .. file)
 
     if (     file ~= nil
-         and io.open(file, "w")
-         and Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 ) then
+         and Workbench:confirm("Overwrite?", "Do you want to overwrite the previously exported file " .. file .. "?") == 1 
+         and io.open(file, "w")) then
 
         -- global
         doctrineExportPath = file
