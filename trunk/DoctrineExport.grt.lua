@@ -877,7 +877,8 @@ function relationBuilding(tbl, tables)
         relations = relations .. externalRelations .. "\n"
     end
 
-    if ( foreignKey ~= nil or mnRelations ~= nil ) then
+    -- if ( foreignKey ~= nil or mnRelations ~= nil ) then
+    if ( relations ~= "" ) then
         return "  relations:\n" .. relations
     end
 
